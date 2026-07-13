@@ -7,6 +7,8 @@ import {
   holePoints,
   summarizeScores,
   isHoleInOne,
+  DEFAULT_RULE,
+  type ScoreRule,
 } from "@/lib/scoring";
 
 interface GroupInfo {
@@ -29,6 +31,7 @@ export default function EntryPage() {
   const [step, setStep] = useState<Step>("passcode");
   const [passcode, setPasscode] = useState("");
   const [pin, setPin] = useState("");
+  const [rule, setRule] = useState<ScoreRule>(DEFAULT_RULE);
   const [tournament, setTournament] = useState<{
     id: string;
     name: string;
@@ -112,6 +115,7 @@ export default function EntryPage() {
         setGroup(data.group);
         setMembers(data.members);
         setStatus(data.status);
+        if (data.rule) setRule(data.rule);
         setOrder(playOrder(data.group.startHole));
         setHoleIdx(0);
         setStep("input");
@@ -130,7 +134,7 @@ export default function EntryPage() {
   function memberSummary(m: Member) {
     const map = new Map<number, number | null>();
     for (const [k, v] of Object.entries(m.scores)) map.set(Number(k), v);
-    return summarizeScores(map);
+    return summarizeScores(map, rule);
   }
 
   async function setStroke(memberId: string, hole: number, next: number | null) {
@@ -329,16 +333,16 @@ export default function EntryPage() {
                   <div className="text-xs h-4">
                     {cur != null && isHoleInOne(cur) && (
                       <span className="text-red-600 font-bold">
-                        ホールインワン (-3)
+                        ホールインワン ({rule.hioPoints})
                       </span>
                     )}
-                    {cur != null && cur >= 5 && (
-                      <span className="text-slate-400">上限5打</span>
+                    {cur != null && !isHoleInOne(cur) && cur >= rule.maxStrokes && (
+                      <span className="text-slate-400">上限{rule.maxStrokes}打</span>
                     )}
                     {cur != null &&
                       !isHoleInOne(cur) &&
-                      cur < 5 &&
-                      `${holePoints(cur)}点`}
+                      cur < rule.maxStrokes &&
+                      `${holePoints(cur, rule)}点`}
                   </div>
                 </div>
                 <button
@@ -347,7 +351,7 @@ export default function EntryPage() {
                     setStroke(
                       m.id,
                       hole,
-                      cur == null ? 1 : cur >= 5 ? 5 : cur + 1
+                      cur == null ? 1 : cur >= rule.maxStrokes ? rule.maxStrokes : cur + 1
                     )
                   }
                   className="tap w-14 h-12 rounded-lg bg-brand-500 text-white text-2xl font-bold disabled:opacity-40 active:bg-brand-600"

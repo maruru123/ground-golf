@@ -9,6 +9,8 @@ const updateSchema = z.object({
   heldDate: z.string().nullable().optional(),
   venue: z.string().max(100).nullable().optional(),
   status: z.enum(["draft", "active", "closed"]).optional(),
+  hioPoints: z.number().int().min(-20).max(20).optional(),
+  maxStrokes: z.number().int().min(2).max(20).optional(),
   scorePasscode: z.string().max(40).nullable().optional(),
   regeneratePasscode: z.boolean().optional(),
   viewEnabled: z.boolean().optional(),
@@ -57,6 +59,8 @@ export async function PUT(
     data.heldDate = d.heldDate ? new Date(d.heldDate) : null;
   if (d.venue !== undefined) data.venue = d.venue || null;
   if (d.status !== undefined) data.status = d.status;
+  if (d.hioPoints !== undefined) data.hioPoints = d.hioPoints;
+  if (d.maxStrokes !== undefined) data.maxStrokes = d.maxStrokes;
 
   if (d.regeneratePasscode) data.scorePasscode = randomPasscode();
   else if (d.scorePasscode !== undefined)

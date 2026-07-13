@@ -1,5 +1,11 @@
 import { prisma } from "./prisma";
-import { summarizeScores, rankParticipants, type ScoreSummary } from "./scoring";
+import {
+  summarizeScores,
+  rankParticipants,
+  DEFAULT_RULE,
+  type ScoreSummary,
+  type ScoreRule,
+} from "./scoring";
 
 export interface Standing {
   participantId: string;
@@ -15,6 +21,14 @@ export interface Standing {
 
 /** 大会の順位表データを算出（暫定・正式ともにこのデータから表示）。 */
 export async function computeStandings(tournamentId: string): Promise<Standing[]> {
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { hioPoints: true, maxStrokes: true },
+  });
+  const rule: ScoreRule = tournament
+    ? { hioPoints: tournament.hioPoints, maxStrokes: tournament.maxStrokes }
+    : DEFAULT_RULE;
+
   const participants = await prisma.participant.findMany({
     where: { tournamentId },
     include: {
@@ -26,7 +40,7 @@ export async function computeStandings(tournamentId: string): Promise<Standing[]
   const withSummary = participants.map((p) => {
     const map = new Map<number, number | null>();
     for (const s of p.scores) map.set(s.holeNo, s.strokes);
-    const summary = summarizeScores(map);
+    const summary = summarizeScores(map, rule);
     return { p, summary };
   });
 

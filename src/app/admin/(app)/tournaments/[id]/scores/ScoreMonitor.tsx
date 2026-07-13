@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { summarizeScores } from "@/lib/scoring";
+import { summarizeScores, type ScoreRule } from "@/lib/scoring";
 
 interface Member {
   id: string;
@@ -17,7 +17,13 @@ interface Group {
 
 const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
 
-export default function ScoreMonitor({ groups }: { groups: Group[] }) {
+export default function ScoreMonitor({
+  groups,
+  rule,
+}: {
+  groups: Group[];
+  rule: ScoreRule;
+}) {
   const [data, setData] = useState<Group[]>(groups);
   const [err, setErr] = useState("");
 
@@ -56,7 +62,7 @@ export default function ScoreMonitor({ groups }: { groups: Group[] }) {
   function total(m: Member) {
     const map = new Map<number, number | null>();
     for (const [k, v] of Object.entries(m.scores)) map.set(Number(k), v);
-    return summarizeScores(map);
+    return summarizeScores(map, rule);
   }
 
   if (groups.length === 0) {

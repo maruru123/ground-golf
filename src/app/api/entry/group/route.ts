@@ -24,7 +24,15 @@ export async function POST(req: Request) {
   const group = await prisma.group.findUnique({
     where: { id: groupId },
     include: {
-      tournament: { select: { scorePasscode: true, name: true, status: true } },
+      tournament: {
+        select: {
+          scorePasscode: true,
+          name: true,
+          status: true,
+          hioPoints: true,
+          maxStrokes: true,
+        },
+      },
       participants: {
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         include: { scores: { select: { holeNo: true, strokes: true } } },
@@ -42,6 +50,10 @@ export async function POST(req: Request) {
   return NextResponse.json({
     tournamentName: group.tournament.name,
     status: group.tournament.status,
+    rule: {
+      hioPoints: group.tournament.hioPoints,
+      maxStrokes: group.tournament.maxStrokes,
+    },
     group: {
       id: group.id,
       groupNo: group.groupNo,

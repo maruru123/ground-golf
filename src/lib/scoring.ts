@@ -1,9 +1,17 @@
 // スコアリング・順位計算ロジック（設計書 02_design.md 第5章）
-// 独自ルール:
-//   - 1打(ホールインワン) => -3点
-//   - 2〜5打 => その打数
-//   - 6打以上 => 5点(上限)
+// 独自ルール（大会ごとに設定可能。既定は hioPoints=-3, maxStrokes=5）:
+//   - 1打(ホールインワン) => hioPoints 点
+//   - 2〜maxStrokes 打 => その打数
+//   - maxStrokes を超える打数 => maxStrokes 点(上限)
 //   - 未入力 => null（暫定合計では0扱い、正式対象判定では未完了）
+
+/** スコア換算ルール（大会ごとに可変） */
+export interface ScoreRule {
+  hioPoints: number; // ホールインワン(1打)の換算点
+  maxStrokes: number; // 上限打数（これを超える打数はこの値に丸める）
+}
+
+export const DEFAULT_RULE: ScoreRule = { hioPoints: -3, maxStrokes: 5 };
 
 export const TOTAL_HOLES = 18;
 export const OUT_HOLES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -16,11 +24,13 @@ export function isHoleInOne(strokes: number | null | undefined): boolean {
 }
 
 /** 1ホールの実打数を換算スコア（点）に変換。未入力は null。 */
-export function holePoints(strokes: number | null | undefined): number | null {
+export function holePoints(
+  strokes: number | null | undefined,
+  rule: ScoreRule = DEFAULT_RULE
+): number | null {
   if (strokes == null) return null;
-  if (strokes <= 1) return -3; // ホールインワン
-  if (strokes >= 6) return 5; // 上限5打
-  return strokes; // 2〜5打
+  if (strokes <= 1) return rule.hioPoints; // ホールインワン
+  return Math.min(strokes, rule.maxStrokes); // 2打以上は上限で丸め
 }
 
 export interface ScoreSummary {
@@ -34,7 +44,8 @@ export interface ScoreSummary {
 
 /** ホール番号 -> 実打数 のマップから小計・合計・HIO数を算出。 */
 export function summarizeScores(
-  strokesByHole: Map<number, number | null | undefined>
+  strokesByHole: Map<number, number | null | undefined>,
+  rule: ScoreRule = DEFAULT_RULE
 ): ScoreSummary {
   let out = 0;
   let inn = 0;
@@ -43,7 +54,7 @@ export function summarizeScores(
 
   for (const hole of ALL_HOLES) {
     const strokes = strokesByHole.get(hole);
-    const pts = holePoints(strokes);
+    const pts = holePoints(strokes, rule);
     if (pts == null) continue;
     entered++;
     if (hole <= 9) out += pts;

@@ -9,6 +9,8 @@ interface TournamentData {
   heldDate: string;
   venue: string;
   status: string;
+  hioPoints: number;
+  maxStrokes: number;
   scorePasscode: string;
   viewEnabled: boolean;
   viewToken: string;
@@ -53,6 +55,8 @@ export default function SettingsForm({
             : "",
           venue: tt.venue ?? "",
           status: tt.status,
+          hioPoints: tt.hioPoints,
+          maxStrokes: tt.maxStrokes,
           scorePasscode: tt.scorePasscode ?? "",
           viewEnabled: tt.viewEnabled,
           viewToken: tt.viewToken ?? "",
@@ -165,6 +169,60 @@ export default function SettingsForm({
             </button>
           ))}
         </div>
+      </section>
+
+      {/* スコアルール */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <h2 className="font-bold text-slate-800">スコアルール</h2>
+        <p className="text-sm text-slate-500">
+          この大会の採点ルールです。スコア入力・集計・順位に反映されます。
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              ホールインワンの点数
+            </label>
+            <input
+              type="number"
+              value={t.hioPoints}
+              onChange={(e) =>
+                setT({ ...t, hioPoints: Number(e.target.value) })
+              }
+              className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              1打（ホールインワン）の換算点。既定は -3。
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">上限打数</label>
+            <input
+              type="number"
+              min={2}
+              max={20}
+              value={t.maxStrokes}
+              onChange={(e) =>
+                setT({ ...t, maxStrokes: Number(e.target.value) })
+              }
+              className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              これを超える打数はこの値に丸めます。既定は 5。
+            </p>
+          </div>
+        </div>
+        <button
+          disabled={busy}
+          onClick={() =>
+            patch(
+              { hioPoints: t.hioPoints, maxStrokes: t.maxStrokes },
+              "スコアルールを保存しました"
+            )
+          }
+          className="tap rounded-lg bg-brand-500 text-white font-semibold px-4 py-2 hover:bg-brand-600 disabled:opacity-50"
+        >
+          スコアルールを保存
+        </button>
       </section>
 
       {/* スコア入力設定 */}
