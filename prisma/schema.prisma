@@ -1,0 +1,107 @@
+// グラウンドゴルフ管理システム Prisma スキーマ
+// 設計書 02_design.md 第4章に対応。
+// ローカル開発は SQLite。本番(Neon)へは provider を "postgresql" に変更し
+// DATABASE_URL を差し替えてマイグレーションを作成する（詳細は 03_development.md）。
+// 列挙はネイティブ enum を使わず String + アプリ側バリデーションで表現し、
+// SQLite / PostgreSQL 双方で可搬にしている。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// 大会
+model Tournament {
+  id               String   @id @default(uuid())
+  name             String
+  heldDate         DateTime?
+  venue            String?
+  status           String   @default("draft") // draft(準備中) / active(開催中) / closed(終了)
+  scorePasscode    String? // スコア入力用合言葉
+  viewEnabled      Boolean  @default(false) // 閲覧専用URLの発行有無
+  viewToken        String?  @unique // 閲覧URLのトークン
+  viewPassword     String? // 閲覧PW(任意)。管理者が参加者へ提示するため平文保持
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  groups       Group[]
+  participants Participant[]
+  awards       Award[]
+}
+
+/// 組（グループ）
+model Group {
+  id           String  @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  groupNo      Int // 組番号(1〜)
+  name         String? // 組名(任意・既定は「第N組」)
+  startHole    Int // ショットガンの開始ホール(1〜18)
+  pin          String? // 組別PIN(任意)
+
+  participants Participant[]
+
+  @@unique([tournamentId, groupNo])
+}
+
+/// 参加者
+model Participant {
+  id           String  @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  groupId      String?
+  group        Group?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  name         String // 氏名(姓名1項目)
+  term         Int? // 期(卒業回次)
+  gender       String? // male / female / other
+  status       String  @default("playing") // playing(参加) / absent(欠席) / withdrawn(棄権)
+  sortOrder    Int? // 組内の表示順
+  createdAt    DateTime @default(now())
+
+  scores       Score[]
+  awardWinners AwardWinner[]
+
+  @@index([tournamentId])
+  @@index([groupId])
+}
+
+/// スコア（参加者 × ホール）
+model Score {
+  id            String  @id @default(uuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  holeNo        Int // 1〜18
+  strokes       Int? // 実打数(未入力はNULL)。換算スコアはアプリ側で導出
+  updatedAt     DateTime @updatedAt
+
+  @@unique([participantId, holeNo])
+}
+
+/// 賞
+model Award {
+  id           String  @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  name         String // 賞名
+  kind         String // rank(順位自動) / hio(HIO自動) / manual(手動)
+  sortOrder    Int?
+  createdAt    DateTime @default(now())
+
+  winners AwardWinner[]
+}
+
+/// 受賞者（賞 × 参加者）
+model AwardWinner {
+  awardId       String
+  award         Award  @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  note          String? // 順位・回数などの備考
+
+  @@id([awardId, participantId])
+}

@@ -1,26 +1,40 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-50: #eef5fb;
+  --color-brand-100: #d6e6f4;
+  --color-brand-500: #2c5f8a;
+  --color-brand-600: #244f74;
+  --color-brand-700: #1d405e;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  /* 年配の利用者に配慮し、基本文字を大きめに */
+  font-size: 17px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI",
+    "Yu Gothic", Meiryo, system-ui, sans-serif;
+}
+
+/* タップ領域を確保する共通クラス */
+@layer components {
+  .tap {
+    min-height: 44px;
+  }
+}
+
+/* 印刷（順位表のPDF化）: 操作系を隠す */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
 }
