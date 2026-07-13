@@ -174,8 +174,17 @@ export default function EntryPage() {
           </div>
           <input
             value={passcode}
-            onChange={(e) => setPasscode(e.target.value.toUpperCase())}
+            onChange={(e) =>
+              setPasscode(e.target.value.replace(/\s/g, "").toUpperCase())
+            }
             autoFocus
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            enterKeyHint="go"
             className="tap w-full rounded-lg border border-slate-300 px-3 py-3 text-lg tracking-widest text-center outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             placeholder="合言葉"
           />
