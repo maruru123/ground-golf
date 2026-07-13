@@ -64,21 +64,25 @@ export default function EntryPage() {
 
   async function verify(e?: React.FormEvent) {
     e?.preventDefault();
+    // 入力中は素通しにしているため、送信時にここで正規化（空白除去・大文字化）
+    const code = passcode.replace(/\s/g, "").toUpperCase();
+    if (!code) return;
     setErr("");
     setBusy(true);
     try {
       const res = await fetch("/api/entry/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ passcode }),
+        body: JSON.stringify({ passcode: code }),
       });
       const data = await res.json();
       if (res.ok) {
+        setPasscode(code); // 以降のAPI呼び出し用に正規化済みの値へ統一
         setTournament(data.tournament);
         setGroups(data.groups);
         setStatus(data.tournament.status);
         setStep("group");
-        sessionStorage.setItem("gg_entry", JSON.stringify({ passcode }));
+        sessionStorage.setItem("gg_entry", JSON.stringify({ passcode: code }));
       } else setErr(data.error ?? "失敗しました");
     } catch {
       setErr("通信エラーが発生しました");
@@ -172,20 +176,20 @@ export default function EntryPage() {
             </h1>
             <p className="text-sm text-slate-500">合言葉を入力してください</p>
           </div>
+          {/* iOS Safari では入力中に値を加工すると文字が重複するため、
+              ここでは素通しにし、表示はCSSで大文字化、正規化は送信時(verify)に行う */}
           <input
             value={passcode}
-            onChange={(e) =>
-              setPasscode(e.target.value.replace(/\s/g, "").toUpperCase())
-            }
+            onChange={(e) => setPasscode(e.target.value)}
             autoFocus
             type="text"
             inputMode="text"
             autoComplete="off"
             autoCorrect="off"
-            autoCapitalize="characters"
+            autoCapitalize="off"
             spellCheck={false}
             enterKeyHint="go"
-            className="tap w-full rounded-lg border border-slate-300 px-3 py-3 text-lg tracking-widest text-center outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="tap w-full rounded-lg border border-slate-300 px-3 py-3 text-lg tracking-widest text-center uppercase outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             placeholder="合言葉"
           />
           {err && (
