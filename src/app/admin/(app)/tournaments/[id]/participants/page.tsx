@@ -24,6 +24,7 @@ export default async function ParticipantsPage({
         term: p.term,
         gender: p.gender,
         status: p.status,
+        note: p.note,
         groupNo: p.group?.groupNo ?? null,
       }))}
     />

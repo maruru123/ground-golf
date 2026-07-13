@@ -16,6 +16,7 @@ export const PARTICIPANT_STATUS_LABELS: Record<string, string> = {
   playing: "参加",
   absent: "欠席",
   withdrawn: "棄権",
+  disqualified: "失格",
 };
 
 export const GENDER_LABELS: Record<string, string> = {
@@ -37,5 +38,6 @@ export function statusToInternal(v: string): string | null {
   if (s === "参加" || s === "playing") return "playing";
   if (s === "欠席" || s === "absent") return "absent";
   if (s === "棄権" || s === "withdrawn") return "withdrawn";
+  if (s === "失格" || s === "disqualified") return "disqualified";
   return null;
 }

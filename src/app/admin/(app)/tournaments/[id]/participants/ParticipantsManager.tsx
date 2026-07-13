@@ -10,6 +10,7 @@ interface P {
   term: number | null;
   gender: string | null;
   status: string;
+  note: string | null;
   groupNo: number | null;
 }
 
@@ -32,6 +33,7 @@ export default function ParticipantsManager({
   const [name, setName] = useState("");
   const [term, setTerm] = useState("");
   const [gender, setGender] = useState("");
+  const [note, setNote] = useState("");
 
   // 編集中
   const [editId, setEditId] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export default function ParticipantsManager({
           name,
           term: term ? Number(term) : null,
           gender: gender || null,
+          note: note || null,
         }),
       }
     );
@@ -59,6 +62,7 @@ export default function ParticipantsManager({
       setName("");
       setTerm("");
       setGender("");
+      setNote("");
       router.refresh();
     } else setMsg(data.error ?? "追加に失敗しました");
   }
@@ -73,6 +77,7 @@ export default function ParticipantsManager({
         term: edit.term === undefined ? undefined : edit.term,
         gender: edit.gender ?? null,
         status: edit.status,
+        note: edit.note === undefined ? undefined : edit.note,
       }),
     });
     setBusy(false);
@@ -125,7 +130,7 @@ export default function ParticipantsManager({
   function downloadTemplate() {
     const bom = "﻿";
     const csv =
-      "参加者ID,名前,期,性別,組番号,状態\n,山田太郎,12,男,1,参加\n,佐藤花子,15,女,1,参加\n";
+      "参加者ID,名前,期,性別,組番号,状態,備考\n,山田太郎,12,男,1,参加,\n,佐藤花子,15,女,1,棄権,体調不良のため\n";
     const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -188,7 +193,7 @@ export default function ParticipantsManager({
 
       {/* 追加フォーム */}
       <div className="bg-white rounded-2xl border border-slate-200 p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_1fr_auto] gap-2 items-end">
           <div>
             <label className="block text-xs text-slate-500 mb-1">氏名 *</label>
             <input
@@ -220,6 +225,15 @@ export default function ParticipantsManager({
               <option value="other">その他</option>
             </select>
           </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">備考</label>
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="tap w-full rounded-lg border border-slate-300 px-3 py-2"
+              placeholder="（任意）"
+            />
+          </div>
           <button
             disabled={busy || !name}
             onClick={add}
@@ -239,6 +253,7 @@ export default function ParticipantsManager({
               <th className="px-3 py-2 w-16">期</th>
               <th className="px-3 py-2 w-16">性別</th>
               <th className="px-3 py-2 w-20">状態</th>
+              <th className="px-3 py-2">備考</th>
               <th className="px-3 py-2 w-16">組</th>
               <th className="px-3 py-2 w-28"></th>
             </tr>
@@ -246,7 +261,7 @@ export default function ParticipantsManager({
           <tbody>
             {initial.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate-400">
+                <td colSpan={7} className="px-3 py-6 text-center text-slate-400">
                   参加者がいません。追加またはCSV取込してください。
                 </td>
               </tr>
@@ -309,7 +324,21 @@ export default function ParticipantsManager({
                           <option value="playing">参加</option>
                           <option value="absent">欠席</option>
                           <option value="withdrawn">棄権</option>
+                          <option value="disqualified">失格</option>
                         </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          defaultValue={p.note ?? ""}
+                          onChange={(e) =>
+                            setEdit((s) => ({
+                              ...s,
+                              note: e.target.value || null,
+                            }))
+                          }
+                          placeholder="理由など"
+                          className="w-full min-w-[8rem] rounded border border-slate-300 px-2 py-1"
+                        />
                       </td>
                       <td className="px-3 py-2 text-slate-400">
                         {p.groupNo ?? "-"}
@@ -345,11 +374,16 @@ export default function ParticipantsManager({
                           className={
                             p.status === "playing"
                               ? "text-slate-700"
+                              : p.status === "disqualified"
+                              ? "text-red-600 font-medium"
                               : "text-amber-600"
                           }
                         >
                           {PARTICIPANT_STATUS_LABELS[p.status] ?? p.status}
                         </span>
+                      </td>
+                      <td className="px-3 py-2 text-slate-500 max-w-[12rem] truncate">
+                        {p.note || ""}
                       </td>
                       <td className="px-3 py-2 text-slate-500">
                         {p.groupNo ? `第${p.groupNo}組` : "-"}

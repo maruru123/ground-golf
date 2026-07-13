@@ -9,7 +9,8 @@ const createSchema = z.object({
   name: z.string().trim().min(1, "氏名は必須です").max(50),
   term: z.number().int().min(0).max(999).nullable().optional(),
   gender: z.enum(["male", "female", "other"]).nullable().optional(),
-  status: z.enum(["playing", "absent", "withdrawn"]).optional(),
+  status: z.enum(["playing", "absent", "withdrawn", "disqualified"]).optional(),
+  note: z.string().max(200).nullable().optional(),
 });
 
 export async function GET(
@@ -51,7 +52,7 @@ export async function POST(
       { status: 400 }
     );
   }
-  const { name, term, gender, status } = parsed.data;
+  const { name, term, gender, status, note } = parsed.data;
   const participant = await prisma.participant.create({
     data: {
       tournamentId: id,
@@ -59,6 +60,7 @@ export async function POST(
       term: term ?? null,
       gender: gender ?? null,
       status: status ?? "playing",
+      note: note ?? null,
     },
   });
   return NextResponse.json({ participant }, { status: 201 });

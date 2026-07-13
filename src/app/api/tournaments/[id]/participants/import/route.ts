@@ -23,6 +23,7 @@ interface RowInput {
   性別?: string;
   組番号?: string;
   状態?: string;
+  備考?: string;
 }
 
 interface BuiltRow {
@@ -33,6 +34,7 @@ interface BuiltRow {
   gender: string | null;
   status: string;
   groupNo: number | null;
+  note: string | null;
 }
 
 export async function POST(
@@ -107,6 +109,7 @@ export async function POST(
       }
       groupNo = n;
     }
+    const note = (raw.備考 ?? "").trim() || null;
     rows.push({
       rowNo,
       id: (raw.参加者ID ?? "").trim() || null,
@@ -115,6 +118,7 @@ export async function POST(
       gender,
       status,
       groupNo,
+      note,
     });
   });
 
@@ -193,6 +197,7 @@ export async function POST(
               term: r.term,
               gender: r.gender,
               status: r.status,
+              note: r.note,
               ...(r.groupNo != null ? { groupId } : {}),
             },
           });
@@ -205,6 +210,7 @@ export async function POST(
               term: r.term,
               gender: r.gender,
               status: r.status,
+              note: r.note,
               groupId,
             },
           });

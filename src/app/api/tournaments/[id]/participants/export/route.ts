@@ -24,11 +24,12 @@ export async function GET(
     性別: p.gender ? GENDER_LABELS[p.gender] ?? "" : "",
     組番号: p.group?.groupNo ?? "",
     状態: PARTICIPANT_STATUS_LABELS[p.status] ?? "",
+    備考: p.note ?? "",
   }));
 
   const csv = Papa.unparse(
     {
-      fields: ["参加者ID", "名前", "期", "性別", "組番号", "状態"],
+      fields: ["参加者ID", "名前", "期", "性別", "組番号", "状態", "備考"],
       data: rows.map((r) => [
         r.参加者ID,
         r.名前,
@@ -36,9 +37,10 @@ export async function GET(
         r.性別,
         r.組番号,
         r.状態,
+        r.備考,
       ]),
     },
-    { quotes: false }
+    { quotes: true }
   );
 
   // Excelでの文字化け回避のためBOM付きUTF-8
