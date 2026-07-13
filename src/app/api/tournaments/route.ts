@@ -7,6 +7,8 @@ const createSchema = z.object({
   name: z.string().trim().min(1, "大会名は必須です").max(100),
   heldDate: z.string().optional().nullable(),
   venue: z.string().max(100).optional().nullable(),
+  hioPoints: z.number().int().min(-20).max(20).optional(),
+  maxStrokes: z.number().int().min(2).max(20).optional(),
 });
 
 export async function GET() {
@@ -34,12 +36,15 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  const { name, heldDate, venue } = parsed.data;
+  const { name, heldDate, venue, hioPoints, maxStrokes } = parsed.data;
   const tournament = await prisma.tournament.create({
     data: {
       name,
       venue: venue || null,
       heldDate: heldDate ? new Date(heldDate) : null,
+      // 未指定ならスキーマ既定(-3/5)が適用される
+      ...(hioPoints !== undefined ? { hioPoints } : {}),
+      ...(maxStrokes !== undefined ? { maxStrokes } : {}),
     },
   });
   return NextResponse.json({ tournament }, { status: 201 });

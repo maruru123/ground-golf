@@ -9,6 +9,9 @@ export default function NewTournamentForm() {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [venue, setVenue] = useState("");
+  // スコアルールは既定値を初期表示（通常はそのままでOK）
+  const [hioPoints, setHioPoints] = useState(-3);
+  const [maxStrokes, setMaxStrokes] = useState(5);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,6 +27,8 @@ export default function NewTournamentForm() {
           name,
           heldDate: date || null,
           venue: venue || null,
+          hioPoints,
+          maxStrokes,
         }),
       });
       const data = await res.json();
@@ -31,6 +36,8 @@ export default function NewTournamentForm() {
         setName("");
         setDate("");
         setVenue("");
+        setHioPoints(-3);
+        setMaxStrokes(5);
         setOpen(false);
         router.refresh();
       } else {
@@ -89,6 +96,36 @@ export default function NewTournamentForm() {
             placeholder="任意"
           />
         </div>
+      </div>
+      <div>
+        <p className="text-sm font-medium mb-1">スコアルール（既定値を設定済み）</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">
+              ホールインワンの点数
+            </label>
+            <input
+              type="number"
+              value={hioPoints}
+              onChange={(e) => setHioPoints(Number(e.target.value))}
+              className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">上限打数</label>
+            <input
+              type="number"
+              min={2}
+              max={20}
+              value={maxStrokes}
+              onChange={(e) => setMaxStrokes(Number(e.target.value))}
+              className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+          </div>
+        </div>
+        <p className="text-xs text-slate-400 mt-1">
+          通常はこのまま（−3 / 5）でOK。必要な大会だけ変更してください。後から設定でも変更できます。
+        </p>
       </div>
       {err && (
         <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
