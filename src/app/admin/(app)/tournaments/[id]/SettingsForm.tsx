@@ -30,6 +30,7 @@ export default function SettingsForm({
   const [t, setT] = useState(tournament);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [customPass, setCustomPass] = useState("");
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   async function patch(body: Record<string, unknown>, note = "保存しました") {
@@ -180,13 +181,46 @@ export default function SettingsForm({
           <button
             disabled={busy}
             onClick={() =>
-              patch({ regeneratePasscode: true }, "合言葉を発行しました")
+              patch({ regeneratePasscode: true }, "合言葉を自動発行しました")
             }
             className="tap text-sm rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-50"
           >
-            {t.scorePasscode ? "再発行" : "発行"}
+            {t.scorePasscode ? "自動で再発行" : "自動発行"}
           </button>
         </div>
+
+        {/* 合言葉を自分で決める */}
+        <div className="border-t border-slate-100 pt-3">
+          <label className="block text-sm font-medium mb-1">
+            合言葉を自分で設定する（任意）
+          </label>
+          <div className="flex items-end gap-2 flex-wrap">
+            <input
+              value={customPass}
+              onChange={(e) => setCustomPass(e.target.value)}
+              placeholder="例: SAKURA2026"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              className="tap rounded-lg border border-slate-300 px-3 py-2 tracking-widest uppercase outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+            <button
+              disabled={busy || !customPass.trim()}
+              onClick={() => {
+                const code = customPass.replace(/\s/g, "").toUpperCase();
+                patch({ scorePasscode: code }, "合言葉を設定しました");
+                setCustomPass("");
+              }}
+              className="tap rounded-lg bg-brand-500 text-white font-semibold px-4 py-2 hover:bg-brand-600 disabled:opacity-50"
+            >
+              この合言葉にする
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            英数字がおすすめです。参加者は大文字・小文字を気にせず入力できます（自動で大文字に統一）。
+          </p>
+        </div>
+
         <div className="text-sm text-slate-600">
           入場URL: <span className="font-mono">{entryUrl}</span>
         </div>
