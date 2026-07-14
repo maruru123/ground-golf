@@ -11,13 +11,19 @@ export default async function ScoresPage({
   const { id } = await params;
   const tournament = await prisma.tournament.findUnique({
     where: { id },
-    select: { hioPoints: true, maxStrokes: true, holeCount: true },
+    select: {
+      hioPoints: true,
+      maxStrokes: true,
+      holeCount: true,
+      holesPerRound: true,
+    },
   });
   const rule = {
     hioPoints: tournament?.hioPoints ?? -3,
     maxStrokes: tournament?.maxStrokes ?? 5,
   };
   const holeCount = tournament?.holeCount ?? 18;
+  const holesPerRound = tournament?.holesPerRound ?? holeCount;
   const groups = await prisma.group.findMany({
     where: { tournamentId: id },
     orderBy: { groupNo: "asc" },
@@ -46,6 +52,7 @@ export default async function ScoresPage({
     <ScoreMonitor
       rule={rule}
       holeCount={holeCount}
+      holesPerRound={holesPerRound}
       groups={groups.map((g) => ({
         groupNo: g.groupNo,
         name: g.name,

@@ -19,14 +19,22 @@ export default function ScoreMonitor({
   groups,
   rule,
   holeCount,
+  holesPerRound,
 }: {
   groups: Group[];
   rule: ScoreRule;
   holeCount: number;
+  holesPerRound: number;
 }) {
   const [data, setData] = useState<Group[]>(groups);
   const [err, setErr] = useState("");
   const HOLES = Array.from({ length: holeCount }, (_, i) => i + 1);
+  const roundCount = Math.max(1, Math.ceil(holeCount / holesPerRound));
+  const isMultiRound = roundCount > 1;
+  // ラウンドごとの列数（例: 2R×8Hなら [8, 8]）
+  const roundSpans = Array.from({ length: roundCount }, (_, r) =>
+    Math.min(holesPerRound, holeCount - r * holesPerRound)
+  );
 
   async function save(memberId: string, hole: number, raw: string) {
     let strokes: number | null = null;
@@ -96,15 +104,44 @@ export default function ScoreMonitor({
           <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">
             <table className="text-xs">
               <thead>
+                {isMultiRound && (
+                  <tr className="bg-slate-100 text-slate-500">
+                    <th className="sticky left-0 bg-slate-100" />
+                    {roundSpans.map((span, r) => (
+                      <th
+                        key={r}
+                        colSpan={span}
+                        className={`px-1 py-0.5 font-semibold text-slate-600 ${
+                          r > 0 ? "border-l-2 border-slate-300" : ""
+                        }`}
+                      >
+                        {r + 1}R
+                      </th>
+                    ))}
+                    <th />
+                  </tr>
+                )}
                 <tr className="bg-slate-50 text-slate-500">
                   <th className="px-2 py-1 sticky left-0 bg-slate-50 text-left min-w-[6rem]">
                     氏名
                   </th>
-                  {HOLES.map((h) => (
-                    <th key={h} className="px-1 py-1 w-8">
-                      {h}
-                    </th>
-                  ))}
+                  {HOLES.map((h) => {
+                    const isRoundStart =
+                      isMultiRound && (h - 1) % holesPerRound === 0 && h !== 1;
+                    const label = isMultiRound
+                      ? ((h - 1) % holesPerRound) + 1
+                      : h;
+                    return (
+                      <th
+                        key={h}
+                        className={`px-1 py-1 w-8 ${
+                          isRoundStart ? "border-l-2 border-slate-300" : ""
+                        }`}
+                      >
+                        {label}
+                      </th>
+                    );
+                  })}
                   <th className="px-2 py-1 w-12">計</th>
                 </tr>
               </thead>
@@ -126,16 +163,27 @@ export default function ScoreMonitor({
                       <td className="px-2 py-1 sticky left-0 bg-white font-medium whitespace-nowrap">
                         {m.name}
                       </td>
-                      {HOLES.map((h) => (
-                        <td key={h} className="px-0.5 py-1">
-                          <input
-                            defaultValue={m.scores[h] ?? ""}
-                            inputMode="numeric"
-                            onBlur={(e) => save(m.id, h, e.target.value)}
-                            className="w-7 text-center rounded border border-slate-200 py-1"
-                          />
-                        </td>
-                      ))}
+                      {HOLES.map((h) => {
+                        const isRoundStart =
+                          isMultiRound &&
+                          (h - 1) % holesPerRound === 0 &&
+                          h !== 1;
+                        return (
+                          <td
+                            key={h}
+                            className={`px-0.5 py-1 ${
+                              isRoundStart ? "border-l-2 border-slate-300" : ""
+                            }`}
+                          >
+                            <input
+                              defaultValue={m.scores[h] ?? ""}
+                              inputMode="numeric"
+                              onBlur={(e) => save(m.id, h, e.target.value)}
+                              className="w-7 text-center rounded border border-slate-200 py-1"
+                            />
+                          </td>
+                        );
+                      })}
                       <td className="px-2 py-1 text-right font-semibold">
                         {sum.enteredHoles > 0 ? sum.total : "-"}
                       </td>
