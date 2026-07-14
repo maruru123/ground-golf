@@ -33,6 +33,8 @@ export default function EntryPage() {
   const [pin, setPin] = useState("");
   const [rule, setRule] = useState<ScoreRule>(DEFAULT_RULE);
   const [holeCount, setHoleCount] = useState(18);
+  const [holesPerRound, setHolesPerRound] = useState(18);
+  const [roundCount, setRoundCount] = useState(1);
   const [tournament, setTournament] = useState<{
     id: string;
     name: string;
@@ -118,8 +120,12 @@ export default function EntryPage() {
         setStatus(data.status);
         if (data.rule) setRule(data.rule);
         const hc = data.holeCount ?? 18;
+        const hpr = data.holesPerRound ?? hc;
+        const rc = data.roundCount ?? 1;
         setHoleCount(hc);
-        setOrder(playOrder(data.group.startHole, hc));
+        setHolesPerRound(hpr);
+        setRoundCount(rc);
+        setOrder(playOrder(data.group.startHole, hpr, rc));
         setHoleIdx(0);
         setStep("input");
         sessionStorage.setItem(
@@ -265,6 +271,9 @@ export default function EntryPage() {
   // input step
   const hole = order[holeIdx];
   const canEdit = status === "active";
+  const isMultiRound = roundCount > 1;
+  const currentRound = Math.ceil(hole / holesPerRound);
+  const holeInRound = ((hole - 1) % holesPerRound) + 1;
   return (
     <main className="flex-1 flex flex-col max-w-md mx-auto w-full">
       {/* ヘッダ */}
@@ -278,7 +287,18 @@ export default function EntryPage() {
           </span>
         </div>
         <div className="flex items-baseline justify-between mt-2">
-          <div className="text-2xl font-bold">ホール {hole}</div>
+          <div className="text-2xl font-bold">
+            {isMultiRound ? (
+              <>
+                {currentRound}R {holeInRound}番
+                <span className="text-sm font-normal ml-2 text-white/70">
+                  (通し{hole})
+                </span>
+              </>
+            ) : (
+              <>ホール {hole}</>
+            )}
+          </div>
           <div className="text-sm">
             {holeIdx + 1} / {holeCount}
           </div>
@@ -372,8 +392,10 @@ export default function EntryPage() {
           ◀ 前
         </button>
         <button
-          disabled={holeIdx >= 17}
-          onClick={() => setHoleIdx((i) => Math.min(17, i + 1))}
+          disabled={holeIdx >= order.length - 1}
+          onClick={() =>
+            setHoleIdx((i) => Math.min(order.length - 1, i + 1))
+          }
           className="tap flex-1 rounded-lg bg-brand-500 text-white py-3 font-semibold disabled:opacity-40"
         >
           次 ▶
