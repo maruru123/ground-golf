@@ -31,6 +31,7 @@ export default async function ParticipantsPage({
         id: p.id,
         name: p.name,
         term: p.term,
+        age: p.age,
         gender: p.gender,
         status: p.status,
         note: p.note,

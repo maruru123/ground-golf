@@ -35,7 +35,7 @@ export default function RankingView({
 
   async function createAuto(
     kind: "rank" | "hio",
-    category?: "overall" | "term" | "gender"
+    category?: "overall" | "term" | "gender" | "age"
   ) {
     setBusy(true);
     setMsg("");
@@ -202,6 +202,13 @@ export default function RankingView({
             className="tap text-sm rounded-lg bg-brand-500 text-white px-3 py-1.5 hover:bg-brand-600"
           >
             男女別 上位3位
+          </button>
+          <button
+            disabled={busy}
+            onClick={() => createAuto("rank", "age")}
+            className="tap text-sm rounded-lg bg-brand-500 text-white px-3 py-1.5 hover:bg-brand-600"
+          >
+            年代別 上位3位
           </button>
           <button
             disabled={busy}

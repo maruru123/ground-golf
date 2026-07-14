@@ -6,6 +6,7 @@ import { guardAdmin } from "@/lib/api";
 const updateSchema = z.object({
   name: z.string().trim().min(1).max(50).optional(),
   term: z.number().int().min(0).max(999).nullable().optional(),
+  age: z.number().int().min(0).max(150).nullable().optional(),
   gender: z.enum(["male", "female", "other"]).nullable().optional(),
   status: z.enum(["playing", "absent", "withdrawn", "disqualified"]).optional(),
   note: z.string().max(200).nullable().optional(),
@@ -31,6 +32,7 @@ export async function PUT(
   const data: Record<string, unknown> = {};
   if (d.name !== undefined) data.name = d.name;
   if (d.term !== undefined) data.term = d.term;
+  if (d.age !== undefined) data.age = d.age;
   if (d.gender !== undefined) data.gender = d.gender;
   if (d.status !== undefined) data.status = d.status;
   if (d.note !== undefined) data.note = d.note;

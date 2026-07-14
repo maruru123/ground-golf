@@ -8,6 +8,7 @@ interface P {
   id: string;
   name: string;
   term: number | null;
+  age: number | null;
   gender: string | null;
   status: string;
   note: string | null;
@@ -34,6 +35,7 @@ export default function ParticipantsManager({
   // 追加フォーム
   const [name, setName] = useState("");
   const [term, setTerm] = useState("");
+  const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [note, setNote] = useState("");
 
@@ -53,6 +55,7 @@ export default function ParticipantsManager({
         body: JSON.stringify({
           name,
           term: term ? Number(term) : null,
+          age: age ? Number(age) : null,
           gender: gender || null,
           note: note || null,
         }),
@@ -63,6 +66,7 @@ export default function ParticipantsManager({
     if (res.ok) {
       setName("");
       setTerm("");
+      setAge("");
       setGender("");
       setNote("");
       router.refresh();
@@ -77,6 +81,7 @@ export default function ParticipantsManager({
       body: JSON.stringify({
         name: edit.name,
         term: edit.term === undefined ? undefined : edit.term,
+        age: edit.age === undefined ? undefined : edit.age,
         gender: edit.gender ?? null,
         status: edit.status,
         note: edit.note === undefined ? undefined : edit.note,
@@ -132,7 +137,7 @@ export default function ParticipantsManager({
   function downloadTemplate() {
     const bom = "﻿";
     const csv =
-      "参加者ID,名前,期,性別,組番号,状態,備考\n,山田太郎,12,男,1,参加,\n,佐藤花子,15,女,1,棄権,体調不良のため\n";
+      "参加者ID,名前,期,年齢,性別,組番号,状態,備考\n,山田太郎,12,72,男,1,参加,\n,佐藤花子,15,68,女,1,棄権,体調不良のため\n";
     const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -195,7 +200,7 @@ export default function ParticipantsManager({
 
       {/* 追加フォーム */}
       <div className="bg-white rounded-2xl border border-slate-200 p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_1fr_auto] gap-2 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto_1fr_auto] gap-2 items-end">
           <div>
             <label className="block text-xs text-slate-500 mb-1">氏名 *</label>
             <input
@@ -210,6 +215,15 @@ export default function ParticipantsManager({
             <input
               value={term}
               onChange={(e) => setTerm(e.target.value)}
+              inputMode="numeric"
+              className="tap w-20 rounded-lg border border-slate-300 px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">年齢</label>
+            <input
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
               inputMode="numeric"
               className="tap w-20 rounded-lg border border-slate-300 px-3 py-2"
             />
@@ -253,6 +267,7 @@ export default function ParticipantsManager({
             <tr className="bg-slate-50 text-slate-600 text-left">
               <th className="px-3 py-2">氏名</th>
               <th className="px-3 py-2 w-16">期</th>
+              <th className="px-3 py-2 w-16">年齢</th>
               <th className="px-3 py-2 w-16">性別</th>
               <th className="px-3 py-2 w-20">状態</th>
               <th className="px-3 py-2">備考</th>
@@ -263,7 +278,7 @@ export default function ParticipantsManager({
           <tbody>
             {initial.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-400">
+                <td colSpan={8} className="px-3 py-6 text-center text-slate-400">
                   参加者がいません。追加またはCSV取込してください。
                 </td>
               </tr>
@@ -291,6 +306,21 @@ export default function ParticipantsManager({
                             setEdit((s) => ({
                               ...s,
                               term: e.target.value
+                                ? Number(e.target.value)
+                                : null,
+                            }))
+                          }
+                          className="w-14 rounded border border-slate-300 px-2 py-1"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          defaultValue={p.age ?? ""}
+                          inputMode="numeric"
+                          onChange={(e) =>
+                            setEdit((s) => ({
+                              ...s,
+                              age: e.target.value
                                 ? Number(e.target.value)
                                 : null,
                             }))
@@ -368,6 +398,7 @@ export default function ParticipantsManager({
                     <>
                       <td className="px-3 py-2 font-medium">{p.name}</td>
                       <td className="px-3 py-2">{p.term ?? "-"}</td>
+                      <td className="px-3 py-2">{p.age ?? "-"}</td>
                       <td className="px-3 py-2">
                         {p.gender ? GENDER_LABELS[p.gender] : "-"}
                       </td>

@@ -63,6 +63,7 @@ model Participant {
   group        Group?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
   name         String // 氏名(姓名1項目)
   term         Int? // 期(卒業回次)
+  age          Int? // 年齢（年代別表彰用・大会時点）
   gender       String? // male / female / other
   status       String  @default("playing") // playing(参加) / absent(欠席) / withdrawn(棄権) / disqualified(失格)
   note         String? // 備考（棄権・失格の理由など）

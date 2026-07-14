@@ -11,6 +11,7 @@ export interface Standing {
   participantId: string;
   name: string;
   term: number | null;
+  age: number | null;
   gender: string | null;
   status: string;
   groupNo: number | null;
@@ -61,6 +62,7 @@ export async function computeStandings(tournamentId: string): Promise<Standing[]
       participantId: p.id,
       name: p.name,
       term: p.term,
+      age: p.age,
       gender: p.gender,
       status: p.status,
       groupNo: p.group?.groupNo ?? null,

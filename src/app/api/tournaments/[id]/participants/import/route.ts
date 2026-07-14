@@ -19,6 +19,7 @@ interface RowInput {
   参加者ID?: string;
   名前?: string;
   期?: string;
+  年齢?: string;
   性別?: string;
   組番号?: string;
   状態?: string;
@@ -30,6 +31,7 @@ interface BuiltRow {
   id: string | null;
   name: string;
   term: number | null;
+  age: number | null;
   gender: string | null;
   status: string;
   groupNo: number | null;
@@ -85,6 +87,16 @@ export async function POST(
       }
       term = n;
     }
+    let age: number | null = null;
+    const ageStr = (raw.年齢 ?? "").trim();
+    if (ageStr !== "") {
+      const n = Number(ageStr);
+      if (!Number.isInteger(n) || n < 0 || n > 150) {
+        errors.push({ row: rowNo, message: `年齢が不正です: ${ageStr}` });
+        return;
+      }
+      age = n;
+    }
     let gender: string | null = null;
     const genderStr = (raw.性別 ?? "").trim();
     if (genderStr !== "") {
@@ -124,6 +136,7 @@ export async function POST(
       id: (raw.参加者ID ?? "").trim() || null,
       name,
       term,
+      age,
       gender,
       status,
       groupNo,
@@ -206,6 +219,7 @@ export async function POST(
             data: {
               name: r.name,
               term: r.term,
+              age: r.age,
               gender: r.gender,
               status: r.status,
               note: r.note,
@@ -219,6 +233,7 @@ export async function POST(
               tournamentId,
               name: r.name,
               term: r.term,
+              age: r.age,
               gender: r.gender,
               status: r.status,
               note: r.note,

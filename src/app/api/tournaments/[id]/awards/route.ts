@@ -8,7 +8,7 @@ import { GENDER_LABELS } from "@/lib/labels";
 
 const createSchema = z.object({
   kind: z.enum(["rank", "hio", "manual"]),
-  category: z.enum(["overall", "term", "gender"]).optional(), // rank の部門
+  category: z.enum(["overall", "term", "gender", "age"]).optional(), // rank の部門
   name: z.string().trim().max(60).optional(),
   participantIds: z.array(z.string()).optional(),
   note: z.string().max(60).optional(),
@@ -16,14 +16,17 @@ const createSchema = z.object({
 
 const GENDER_ORDER: Record<string, number> = { male: 0, female: 1, other: 2 };
 
-/** 部門（期別 or 男女別）ごとに上位3位を選出。部門値なし(null)は対象外。 */
+/** 部門（期別 / 男女別 / 年代別）ごとに上位3位を選出。部門値なし(null)は対象外。 */
 function categoryTop3(
   standings: Standing[],
-  by: "term" | "gender"
+  by: "term" | "gender" | "age"
 ): { participantId: string; note: string | null }[] {
   const groups = new Map<string, Standing[]>();
   for (const s of standings) {
-    const key = by === "term" ? (s.term != null ? String(s.term) : null) : s.gender;
+    let key: string | null;
+    if (by === "term") key = s.term != null ? String(s.term) : null;
+    else if (by === "gender") key = s.gender;
+    else key = s.age != null ? String(Math.floor(s.age / 10) * 10) : null; // 年代(10歳区切り)
     if (key == null) continue;
     const arr = groups.get(key);
     if (arr) arr.push(s);
@@ -49,11 +52,18 @@ function categoryTop3(
     for (const m of members) {
       const r = rankById.get(m.participantId)!;
       if (r.eligible && r.rank != null && r.rank <= 3) {
-        const label = by === "term" ? `${key}期` : GENDER_LABELS[key] ?? key;
+        const label =
+          by === "term"
+            ? `${key}期`
+            : by === "age"
+            ? `${key}代`
+            : GENDER_LABELS[key] ?? key;
+        const catSort =
+          by === "gender" ? GENDER_ORDER[key] ?? 9 : Number(key);
         rows.push({
           participantId: m.participantId,
           note: `${label} ${r.rank}位`,
-          catSort: by === "term" ? Number(key) : GENDER_ORDER[key] ?? 9,
+          catSort,
           rank: r.rank,
         });
       }
@@ -114,6 +124,9 @@ export async function POST(
     } else if (category === "gender") {
       if (!name) name = "男女別 上位3位";
       winners = categoryTop3(standings, "gender");
+    } else if (category === "age") {
+      if (!name) name = "年代別 上位3位";
+      winners = categoryTop3(standings, "age");
     } else {
       if (!name) name = "総合 上位3位";
       winners = standings
