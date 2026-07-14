@@ -25,6 +25,7 @@ export default async function TournamentSettingsPage({
         status: t.status,
         hioPoints: t.hioPoints,
         maxStrokes: t.maxStrokes,
+        maxPerGroup: t.maxPerGroup,
         scorePasscode: t.scorePasscode ?? "",
         viewEnabled: t.viewEnabled,
         viewToken: t.viewToken ?? "",

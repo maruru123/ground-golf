@@ -12,6 +12,7 @@ export default function NewTournamentForm() {
   // スコアルールは既定値を初期表示（通常はそのままでOK）
   const [hioPoints, setHioPoints] = useState(-3);
   const [maxStrokes, setMaxStrokes] = useState(5);
+  const [maxPerGroup, setMaxPerGroup] = useState(8);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -29,6 +30,7 @@ export default function NewTournamentForm() {
           venue: venue || null,
           hioPoints,
           maxStrokes,
+          maxPerGroup,
         }),
       });
       const data = await res.json();
@@ -38,6 +40,7 @@ export default function NewTournamentForm() {
         setVenue("");
         setHioPoints(-3);
         setMaxStrokes(5);
+        setMaxPerGroup(8);
         setOpen(false);
         router.refresh();
       } else {
@@ -122,9 +125,22 @@ export default function NewTournamentForm() {
               className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">
+              1組あたりの人数上限
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={maxPerGroup}
+              onChange={(e) => setMaxPerGroup(Number(e.target.value))}
+              className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+          </div>
         </div>
         <p className="text-xs text-slate-400 mt-1">
-          通常はこのまま（−3 / 5）でOK。必要な大会だけ変更してください。後から設定でも変更できます。
+          通常はこのまま（−3 / 5 / 8）でOK。必要な大会だけ変更してください。後から設定でも変更できます。
         </p>
       </div>
       {err && (

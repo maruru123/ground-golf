@@ -11,6 +11,7 @@ const updateSchema = z.object({
   status: z.enum(["draft", "active", "closed"]).optional(),
   hioPoints: z.number().int().min(-20).max(20).optional(),
   maxStrokes: z.number().int().min(2).max(20).optional(),
+  maxPerGroup: z.number().int().min(1).max(20).optional(),
   scorePasscode: z.string().max(40).nullable().optional(),
   regeneratePasscode: z.boolean().optional(),
   viewEnabled: z.boolean().optional(),
@@ -61,6 +62,7 @@ export async function PUT(
   if (d.status !== undefined) data.status = d.status;
   if (d.hioPoints !== undefined) data.hioPoints = d.hioPoints;
   if (d.maxStrokes !== undefined) data.maxStrokes = d.maxStrokes;
+  if (d.maxPerGroup !== undefined) data.maxPerGroup = d.maxPerGroup;
 
   if (d.regeneratePasscode) data.scorePasscode = randomPasscode();
   else if (d.scorePasscode !== undefined)

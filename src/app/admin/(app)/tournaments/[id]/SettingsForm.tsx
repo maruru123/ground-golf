@@ -11,6 +11,7 @@ interface TournamentData {
   status: string;
   hioPoints: number;
   maxStrokes: number;
+  maxPerGroup: number;
   scorePasscode: string;
   viewEnabled: boolean;
   viewToken: string;
@@ -57,6 +58,7 @@ export default function SettingsForm({
           status: tt.status,
           hioPoints: tt.hioPoints,
           maxStrokes: tt.maxStrokes,
+          maxPerGroup: tt.maxPerGroup,
           scorePasscode: tt.scorePasscode ?? "",
           viewEnabled: tt.viewEnabled,
           viewToken: tt.viewToken ?? "",
@@ -222,6 +224,42 @@ export default function SettingsForm({
           className="tap rounded-lg bg-brand-500 text-white font-semibold px-4 py-2 hover:bg-brand-600 disabled:opacity-50"
         >
           スコアルールを保存
+        </button>
+      </section>
+
+      {/* 組の設定 */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <h2 className="font-bold text-slate-800">組の設定</h2>
+        <div className="sm:w-1/2">
+          <label className="block text-sm font-medium mb-1">
+            1組あたりの人数上限
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={t.maxPerGroup}
+            onChange={(e) =>
+              setT({ ...t, maxPerGroup: Number(e.target.value) })
+            }
+            className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            ペアリングやCSV取込での1組の上限人数。既定は 8。参加者数の上限は「18組 ×
+            この人数」になります。
+          </p>
+        </div>
+        <button
+          disabled={busy}
+          onClick={() =>
+            patch(
+              { maxPerGroup: t.maxPerGroup },
+              "組の設定を保存しました"
+            )
+          }
+          className="tap rounded-lg bg-brand-500 text-white font-semibold px-4 py-2 hover:bg-brand-600 disabled:opacity-50"
+        >
+          組の設定を保存
         </button>
       </section>
 

@@ -3,7 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { guardAdmin } from "@/lib/api";
 
-const MAX_PARTICIPANTS = 144;
+const MAX_GROUPS = 18;
+const DEFAULT_PER_GROUP = 8;
 
 const createSchema = z.object({
   name: z.string().trim().min(1, "氏名は必須です").max(50),
@@ -36,10 +37,15 @@ export async function POST(
   if (denied) return denied;
   const { id } = await ctx.params;
 
+  const tournament = await prisma.tournament.findUnique({
+    where: { id },
+    select: { maxPerGroup: true },
+  });
+  const maxParticipants = MAX_GROUPS * (tournament?.maxPerGroup ?? DEFAULT_PER_GROUP);
   const count = await prisma.participant.count({ where: { tournamentId: id } });
-  if (count >= MAX_PARTICIPANTS) {
+  if (count >= maxParticipants) {
     return NextResponse.json(
-      { error: `参加者は最大${MAX_PARTICIPANTS}名までです` },
+      { error: `参加者は最大${maxParticipants}名までです` },
       { status: 400 }
     );
   }

@@ -17,10 +17,12 @@ interface Part {
 
 export default function PairingEditor({
   tournamentId,
+  maxPerGroup,
   initialGroups,
   participants,
 }: {
   tournamentId: string;
+  maxPerGroup: number;
   initialGroups: GroupMeta[];
   participants: Part[];
 }) {
@@ -127,7 +129,7 @@ export default function PairingEditor({
       </div>
 
       <p className="text-sm text-slate-500">
-        ショットガン方式：各組に開始ホールを割り当てます。1組は最大8名です。
+        ショットガン方式：各組に開始ホールを割り当てます。1組は最大{maxPerGroup}名です。
       </p>
 
       {/* 未割当 */}
@@ -178,7 +180,7 @@ export default function PairingEditor({
             .filter(([, no]) => no === g.groupNo)
             .map(([pid]) => nameById.get(pid)!)
             .filter(Boolean);
-          const over = members.length > 8;
+          const over = members.length > maxPerGroup;
           return (
             <div
               key={g.groupNo}
@@ -236,7 +238,7 @@ export default function PairingEditor({
                   over ? "text-red-600 font-semibold" : "text-slate-400"
                 }`}
               >
-                {members.length}名 {over && "（上限8名を超過）"}
+                {members.length}名 {over && `（上限${maxPerGroup}名を超過）`}
               </div>
               <ul className="space-y-1">
                 {members.map((m) => (

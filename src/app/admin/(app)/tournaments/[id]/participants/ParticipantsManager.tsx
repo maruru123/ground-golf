@@ -16,9 +16,11 @@ interface P {
 
 export default function ParticipantsManager({
   tournamentId,
+  maxTotal,
   initial,
 }: {
   tournamentId: string;
+  maxTotal: number;
   initial: P[];
 }) {
   const router = useRouter();
@@ -144,7 +146,7 @@ export default function ParticipantsManager({
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-bold text-slate-800">
-          参加者一覧（{initial.length}名 / 最大144名）
+          参加者一覧（{initial.length}名 / 最大{maxTotal}名）
         </h2>
       </div>
 

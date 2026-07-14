@@ -9,6 +9,11 @@ export default async function ParticipantsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const tournament = await prisma.tournament.findUnique({
+    where: { id },
+    select: { maxPerGroup: true },
+  });
+  const maxTotal = 18 * (tournament?.maxPerGroup ?? 8);
   const participants = await prisma.participant.findMany({
     where: { tournamentId: id },
     orderBy: [{ term: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
@@ -18,6 +23,7 @@ export default async function ParticipantsPage({
   return (
     <ParticipantsManager
       tournamentId={id}
+      maxTotal={maxTotal}
       initial={participants.map((p) => ({
         id: p.id,
         name: p.name,

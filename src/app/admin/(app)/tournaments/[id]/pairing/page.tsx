@@ -9,6 +9,11 @@ export default async function PairingPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const tournament = await prisma.tournament.findUnique({
+    where: { id },
+    select: { maxPerGroup: true },
+  });
+  const maxPerGroup = tournament?.maxPerGroup ?? 8;
   const [groups, participants] = await Promise.all([
     prisma.group.findMany({
       where: { tournamentId: id },
@@ -43,6 +48,7 @@ export default async function PairingPage({
     <PairingEditor
       key={signature}
       tournamentId={id}
+      maxPerGroup={maxPerGroup}
       initialGroups={groups.map((g) => ({
         groupNo: g.groupNo,
         name: g.name ?? "",

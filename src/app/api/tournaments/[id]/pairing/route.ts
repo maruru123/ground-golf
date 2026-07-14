@@ -3,8 +3,17 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { guardAdmin } from "@/lib/api";
 
-const MAX_PER_GROUP = 8;
+const DEFAULT_PER_GROUP = 8; // 大会未設定時のフォールバック
 const MAX_GROUPS = 18; // ショットガン: 18ホール = 最大18組
+
+/** 大会の1組あたり人数上限を取得（未設定時は既定8） */
+async function getMaxPerGroup(tournamentId: string): Promise<number> {
+  const t = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { maxPerGroup: true },
+  });
+  return t?.maxPerGroup ?? DEFAULT_PER_GROUP;
+}
 
 const saveSchema = z.object({
   groups: z
@@ -22,16 +31,17 @@ const saveSchema = z.object({
 
 type SaveInput = z.infer<typeof saveSchema>;
 
-/** 期ごとに最大8名でまとめる（期の境界で必ず組を分ける） */
+/** 期ごとに最大 maxPerGroup 名でまとめる（期の境界で必ず組を分ける） */
 function chunkByTerm(
-  participants: { id: string; term: number | null }[]
+  participants: { id: string; term: number | null }[],
+  maxPerGroup: number
 ): string[][] {
   const chunks: string[][] = [];
   let current: string[] = [];
   let currentTerm: number | null | undefined = undefined;
   for (const p of participants) {
     const termChanged = current.length > 0 && p.term !== currentTerm;
-    if (current.length >= MAX_PER_GROUP || termChanged) {
+    if (current.length >= maxPerGroup || termChanged) {
       chunks.push(current);
       current = [];
     }
@@ -42,18 +52,19 @@ function chunkByTerm(
   return chunks;
 }
 
-/** 期の境界を無視して先頭から8名ずつ詰める（18組以内を保証） */
-function chunkSequential(ids: string[]): string[][] {
+/** 期の境界を無視して先頭から maxPerGroup 名ずつ詰める */
+function chunkSequential(ids: string[], maxPerGroup: number): string[][] {
   const chunks: string[][] = [];
-  for (let i = 0; i < ids.length; i += MAX_PER_GROUP) {
-    chunks.push(ids.slice(i, i + MAX_PER_GROUP));
+  for (let i = 0; i < ids.length; i += maxPerGroup) {
+    chunks.push(ids.slice(i, i + maxPerGroup));
   }
   return chunks;
 }
 
 async function applyPairing(
   tournamentId: string,
-  input: SaveInput
+  input: SaveInput,
+  maxPerGroup: number
 ): Promise<{ ok: true } | { error: string; status: number }> {
   if (input.groups.length > MAX_GROUPS) {
     return {
@@ -85,8 +96,8 @@ async function applyPairing(
     counts.set(no, (counts.get(no) ?? 0) + 1);
   }
   for (const [no, c] of counts) {
-    if (c > MAX_PER_GROUP) {
-      return { error: `第${no}組が${c}名（上限${MAX_PER_GROUP}名）`, status: 400 };
+    if (c > maxPerGroup) {
+      return { error: `第${no}組が${c}名（上限${maxPerGroup}名）`, status: 400 };
     }
   }
 
@@ -143,7 +154,8 @@ export async function PUT(
       { status: 400 }
     );
   }
-  const result = await applyPairing(id, parsed.data);
+  const maxPerGroup = await getMaxPerGroup(id);
+  const result = await applyPairing(id, parsed.data, maxPerGroup);
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
@@ -159,18 +171,19 @@ export async function POST(
   if (denied) return denied;
   const { id } = await ctx.params;
 
+  const maxPerGroup = await getMaxPerGroup(id);
   const participants = await prisma.participant.findMany({
     where: { tournamentId: id },
     orderBy: [{ term: "asc" }, { name: "asc" }],
     select: { id: true, term: true },
   });
 
-  // まず期ごとに最大8名でまとめる（期の混在を避ける）
-  let chunks = chunkByTerm(participants);
+  // まず期ごとに最大 maxPerGroup 名でまとめる（期の混在を避ける）
+  let chunks = chunkByTerm(participants, maxPerGroup);
   // 期数が多く18組を超える場合は、期順のまま詰め直して18組以内に収める
   // （同一期はできるだけ同組に残る。細かな調整は手動編集で対応）
   if (chunks.length > MAX_GROUPS) {
-    chunks = chunkSequential(participants.map((p) => p.id));
+    chunks = chunkSequential(participants.map((p) => p.id), maxPerGroup);
   }
 
   const groups = chunks.map((_, i) => ({
@@ -186,7 +199,7 @@ export async function POST(
     });
   });
 
-  const result = await applyPairing(id, { groups, assignments });
+  const result = await applyPairing(id, { groups, assignments }, maxPerGroup);
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }

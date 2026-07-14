@@ -4,8 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { guardAdmin } from "@/lib/api";
 import { genderToInternal, statusToInternal } from "@/lib/labels";
 
-const MAX_PARTICIPANTS = 144;
-const MAX_PER_GROUP = 8;
+const DEFAULT_PER_GROUP = 8;
 const MAX_GROUPS = 18; // 18ホール = 最大18組。組番号もこの範囲に収める
 
 /** 取込のロールバック用エラー（人数超過など） */
@@ -44,6 +43,13 @@ export async function POST(
   const denied = await guardAdmin();
   if (denied) return denied;
   const { id: tournamentId } = await ctx.params;
+
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { maxPerGroup: true },
+  });
+  const maxPerGroup = tournament?.maxPerGroup ?? DEFAULT_PER_GROUP;
+  const maxParticipants = MAX_GROUPS * maxPerGroup;
 
   const body = (await req.json().catch(() => null)) as { csv?: string } | null;
   const csv = body?.csv;
@@ -141,10 +147,10 @@ export async function POST(
   );
   const createRows = rows.filter((r) => !r.id);
 
-  if (existing.length + createRows.length > MAX_PARTICIPANTS) {
+  if (existing.length + createRows.length > maxParticipants) {
     errors.push({
       row: 0,
-      message: `参加者が上限${MAX_PARTICIPANTS}名を超えます（取込後 ${
+      message: `参加者が上限${maxParticipants}名を超えます（取込後 ${
         existing.length + createRows.length
       }名）`,
     });
@@ -224,10 +230,10 @@ export async function POST(
         select: { groupNo: true, _count: { select: { participants: true } } },
       });
       const over = groupsAfter
-        .filter((g) => g._count.participants > MAX_PER_GROUP)
+        .filter((g) => g._count.participants > maxPerGroup)
         .map(
           (g) =>
-            `第${g.groupNo}組が${g._count.participants}名（上限${MAX_PER_GROUP}名）`
+            `第${g.groupNo}組が${g._count.participants}名（上限${maxPerGroup}名）`
         );
       if (over.length > 0) throw new ImportError(over);
 
