@@ -84,9 +84,20 @@ export default function RankingView({
   async function deleteAward(id: string) {
     if (!confirm("この賞を削除しますか？")) return;
     setBusy(true);
-    const res = await fetch(`/api/awards/${id}`, { method: "DELETE" });
-    setBusy(false);
-    if (res.ok) router.refresh();
+    setMsg("");
+    try {
+      const res = await fetch(`/api/awards/${id}`, { method: "DELETE" });
+      setBusy(false);
+      if (res.ok) {
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => null);
+        setMsg(data?.error ?? "削除に失敗しました");
+      }
+    } catch {
+      setBusy(false);
+      setMsg("通信エラーが発生しました");
+    }
   }
 
   return (
