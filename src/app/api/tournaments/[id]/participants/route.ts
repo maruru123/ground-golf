@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { guardAdmin } from "@/lib/api";
+import { maxGroupsFor } from "@/lib/tournamentLimits";
 
-const MAX_GROUPS = 18;
 const DEFAULT_PER_GROUP = 8;
 
 const createSchema = z.object({
@@ -39,9 +39,11 @@ export async function POST(
 
   const tournament = await prisma.tournament.findUnique({
     where: { id },
-    select: { maxPerGroup: true },
+    select: { maxPerGroup: true, startMethod: true },
   });
-  const maxParticipants = MAX_GROUPS * (tournament?.maxPerGroup ?? DEFAULT_PER_GROUP);
+  const maxParticipants =
+    maxGroupsFor(tournament?.startMethod ?? "shotgun") *
+    (tournament?.maxPerGroup ?? DEFAULT_PER_GROUP);
   const count = await prisma.participant.count({ where: { tournamentId: id } });
   if (count >= maxParticipants) {
     return NextResponse.json(

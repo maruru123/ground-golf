@@ -23,6 +23,7 @@ export default async function TournamentSettingsPage({
           : "",
         venue: t.venue ?? "",
         status: t.status,
+        startMethod: t.startMethod,
         hioPoints: t.hioPoints,
         maxStrokes: t.maxStrokes,
         maxPerGroup: t.maxPerGroup,

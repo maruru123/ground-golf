@@ -11,9 +11,10 @@ export default async function PairingPage({
   const { id } = await params;
   const tournament = await prisma.tournament.findUnique({
     where: { id },
-    select: { maxPerGroup: true },
+    select: { maxPerGroup: true, startMethod: true },
   });
   const maxPerGroup = tournament?.maxPerGroup ?? 8;
+  const startMethod = tournament?.startMethod ?? "shotgun";
   const [groups, participants] = await Promise.all([
     prisma.group.findMany({
       where: { tournamentId: id },
@@ -49,6 +50,7 @@ export default async function PairingPage({
       key={signature}
       tournamentId={id}
       maxPerGroup={maxPerGroup}
+      startMethod={startMethod}
       initialGroups={groups.map((g) => ({
         groupNo: g.groupNo,
         name: g.name ?? "",

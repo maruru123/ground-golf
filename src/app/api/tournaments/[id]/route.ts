@@ -22,6 +22,7 @@ const updateSchema = z.object({
   heldDate: z.string().nullable().optional(),
   venue: z.string().max(100).nullable().optional(),
   status: z.enum(["draft", "active", "closed"]).optional(),
+  startMethod: z.enum(["shotgun", "sequential"]).optional(),
   hioPoints: z.number().int().min(-20).max(20).optional(),
   maxStrokes: z.number().int().min(1).max(20).optional(),
   maxPerGroup: z.number().int().min(1).max(20).optional(),
@@ -73,6 +74,7 @@ export async function PUT(
     data.heldDate = d.heldDate ? new Date(d.heldDate) : null;
   if (d.venue !== undefined) data.venue = d.venue || null;
   if (d.status !== undefined) data.status = d.status;
+  if (d.startMethod !== undefined) data.startMethod = d.startMethod;
   if (d.hioPoints !== undefined) data.hioPoints = d.hioPoints;
   if (d.maxStrokes !== undefined) data.maxStrokes = d.maxStrokes;
   if (d.maxPerGroup !== undefined) data.maxPerGroup = d.maxPerGroup;

@@ -22,6 +22,7 @@ model Tournament {
   heldDate         DateTime?
   venue            String?
   status           String   @default("draft") // draft(準備中) / active(開催中) / closed(終了)
+  startMethod      String   @default("shotgun") // shotgun(一斉) / sequential(順次スタート)
   hioPoints        Int      @default(-3) // ホールインワン(1打)の換算点
   maxStrokes       Int      @default(5) // 1ホールの上限打数（これを超える打数はこの値に丸める）
   maxPerGroup      Int      @default(8) // 1組あたりの人数上限

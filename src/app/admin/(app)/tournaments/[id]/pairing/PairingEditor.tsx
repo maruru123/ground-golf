@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { maxGroupsFor } from "@/lib/tournamentLimits";
 
 interface GroupMeta {
   groupNo: number;
@@ -18,14 +19,18 @@ interface Part {
 export default function PairingEditor({
   tournamentId,
   maxPerGroup,
+  startMethod,
   initialGroups,
   participants,
 }: {
   tournamentId: string;
   maxPerGroup: number;
+  startMethod: string;
   initialGroups: GroupMeta[];
   participants: Part[];
 }) {
+  const isSequential = startMethod === "sequential";
+  const maxGroups = maxGroupsFor(startMethod);
   const router = useRouter();
   const [groups, setGroups] = useState<GroupMeta[]>(initialGroups);
   const [assign, setAssign] = useState<Record<string, number | null>>(
@@ -58,8 +63,12 @@ export default function PairingEditor({
   }
 
   function addGroup() {
-    if (groups.length >= 18) {
-      setMsg("組は最大18組までです（ショットガン方式：18ホール）");
+    if (groups.length >= maxGroups) {
+      setMsg(
+        isSequential
+          ? `組は最大${maxGroups}組までです`
+          : "組は最大18組までです（ショットガン方式：18ホール）"
+      );
       return;
     }
     const nextNo = groups.length
@@ -67,7 +76,11 @@ export default function PairingEditor({
       : 1;
     setGroups([
       ...groups,
-      { groupNo: nextNo, name: "", startHole: ((nextNo - 1) % 18) + 1 },
+      {
+        groupNo: nextNo,
+        name: "",
+        startHole: isSequential ? 1 : ((nextNo - 1) % 18) + 1,
+      },
     ]);
   }
 
@@ -133,7 +146,9 @@ export default function PairingEditor({
       </div>
 
       <p className="text-sm text-slate-500">
-        ショットガン方式：各組に開始ホールを割り当てます。1組は最大{maxPerGroup}名です。
+        {isSequential
+          ? `順次スタート方式：全組が1番ホールから時間差でスタートします。1組は最大${maxPerGroup}名です。`
+          : `ショットガン方式：各組に開始ホールを割り当てます（重複不可）。1組は最大${maxPerGroup}名です。`}
       </p>
 
       {/* 未割当 */}
@@ -208,28 +223,34 @@ export default function PairingEditor({
                   placeholder="組名(任意)"
                   className="text-sm rounded border border-slate-300 px-2 py-1 w-28"
                 />
-                <label className="text-sm text-slate-500 ml-auto">
-                  開始
-                  <select
-                    value={g.startHole}
-                    onChange={(e) =>
-                      setGroups((gs) =>
-                        gs.map((x) =>
-                          x.groupNo === g.groupNo
-                            ? { ...x, startHole: Number(e.target.value) }
-                            : x
+                {isSequential ? (
+                  <span className="text-sm text-slate-400 ml-auto">
+                    開始 1番
+                  </span>
+                ) : (
+                  <label className="text-sm text-slate-500 ml-auto">
+                    開始
+                    <select
+                      value={g.startHole}
+                      onChange={(e) =>
+                        setGroups((gs) =>
+                          gs.map((x) =>
+                            x.groupNo === g.groupNo
+                              ? { ...x, startHole: Number(e.target.value) }
+                              : x
+                          )
                         )
-                      )
-                    }
-                    className="ml-1 rounded border border-slate-300 px-1 py-1"
-                  >
-                    {Array.from({ length: 18 }, (_, i) => i + 1).map((h) => (
-                      <option key={h} value={h}>
-                        {h}番
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                      }
+                      className="ml-1 rounded border border-slate-300 px-1 py-1"
+                    >
+                      {Array.from({ length: 18 }, (_, i) => i + 1).map((h) => (
+                        <option key={h} value={h}>
+                          {h}番
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <button
                   onClick={() => removeGroup(g.groupNo)}
                   className="text-red-400 text-sm"

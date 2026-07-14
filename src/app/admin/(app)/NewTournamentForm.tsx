@@ -16,6 +16,9 @@ export default function NewTournamentForm() {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [venue, setVenue] = useState("");
+  const [startMethod, setStartMethod] = useState<"shotgun" | "sequential">(
+    "shotgun"
+  );
   // スコアルールは既定値を初期表示（通常はそのままでOK）
   const [hioPoints, setHioPoints] = useState(-3);
   const [maxStrokes, setMaxStrokes] = useState(5);
@@ -35,6 +38,7 @@ export default function NewTournamentForm() {
           name,
           heldDate: date || null,
           venue: venue || null,
+          startMethod,
           hioPoints,
           maxStrokes,
           maxPerGroup,
@@ -45,6 +49,7 @@ export default function NewTournamentForm() {
         setName("");
         setDate("");
         setVenue("");
+        setStartMethod("shotgun");
         setHioPoints(-3);
         setMaxStrokes(5);
         setMaxPerGroup(8);
@@ -106,6 +111,22 @@ export default function NewTournamentForm() {
             placeholder="任意"
           />
         </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">スタート方式</label>
+        <select
+          value={startMethod}
+          onChange={(e) =>
+            setStartMethod(e.target.value as "shotgun" | "sequential")
+          }
+          className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        >
+          <option value="shotgun">ショットガン（一斉スタート・最大18組）</option>
+          <option value="sequential">順次スタート（1番から時間差）</option>
+        </select>
+        <p className="text-xs text-slate-400 mt-1">
+          通常はショットガン。組数が18を超える場合は順次スタートを選んでください。
+        </p>
       </div>
       <div>
         <p className="text-sm font-medium mb-1">スコアルール（既定値を設定済み）</p>

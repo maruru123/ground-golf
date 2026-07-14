@@ -16,6 +16,7 @@ interface TournamentData {
   heldDate: string;
   venue: string;
   status: string;
+  startMethod: string;
   hioPoints: number;
   maxStrokes: number;
   maxPerGroup: number;
@@ -63,6 +64,7 @@ export default function SettingsForm({
             : "",
           venue: tt.venue ?? "",
           status: tt.status,
+          startMethod: tt.startMethod,
           hioPoints: tt.hioPoints,
           maxStrokes: tt.maxStrokes,
           maxPerGroup: tt.maxPerGroup,
@@ -237,6 +239,22 @@ export default function SettingsForm({
       {/* 組の設定 */}
       <section className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
         <h2 className="font-bold text-slate-800">組の設定</h2>
+        <div className="sm:w-2/3">
+          <label className="block text-sm font-medium mb-1">スタート方式</label>
+          <select
+            value={t.startMethod}
+            onChange={(e) => setT({ ...t, startMethod: e.target.value })}
+            className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          >
+            <option value="shotgun">
+              ショットガン（一斉スタート・最大18組）
+            </option>
+            <option value="sequential">順次スタート（1番から時間差）</option>
+          </select>
+          <p className="text-xs text-slate-400 mt-1">
+            方式を変えたら、ペアリングを再度保存してください（開始ホールの割当が変わります）。
+          </p>
+        </div>
         <div className="sm:w-1/2">
           <label className="block text-sm font-medium mb-1">
             1組あたりの人数上限
@@ -260,7 +278,7 @@ export default function SettingsForm({
           disabled={busy}
           onClick={() =>
             patch(
-              { maxPerGroup: t.maxPerGroup },
+              { maxPerGroup: t.maxPerGroup, startMethod: t.startMethod },
               "組の設定を保存しました"
             )
           }

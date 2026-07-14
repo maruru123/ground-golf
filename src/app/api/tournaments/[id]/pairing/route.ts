@@ -2,17 +2,26 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { guardAdmin } from "@/lib/api";
+import {
+  maxGroupsFor,
+  SEQUENTIAL_MAX_GROUPS,
+  type StartMethod,
+} from "@/lib/tournamentLimits";
 
 const DEFAULT_PER_GROUP = 8; // 大会未設定時のフォールバック
-const MAX_GROUPS = 18; // ショットガン: 18ホール = 最大18組
 
-/** 大会の1組あたり人数上限を取得（未設定時は既定8） */
-async function getMaxPerGroup(tournamentId: string): Promise<number> {
+/** 大会のペアリング関連設定を取得（未設定時は既定にフォールバック） */
+async function getPairingConfig(
+  tournamentId: string
+): Promise<{ maxPerGroup: number; startMethod: StartMethod }> {
   const t = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { maxPerGroup: true },
+    select: { maxPerGroup: true, startMethod: true },
   });
-  return t?.maxPerGroup ?? DEFAULT_PER_GROUP;
+  return {
+    maxPerGroup: t?.maxPerGroup ?? DEFAULT_PER_GROUP,
+    startMethod: (t?.startMethod as StartMethod) ?? "shotgun",
+  };
 }
 
 const saveSchema = z.object({
@@ -25,7 +34,7 @@ const saveSchema = z.object({
         pin: z.string().max(20).nullable().optional(),
       })
     )
-    .max(18, "組は最大18組までです"),
+    .max(SEQUENTIAL_MAX_GROUPS, `組は最大${SEQUENTIAL_MAX_GROUPS}組までです`),
   assignments: z.record(z.string(), z.number().int().nullable()),
 });
 
@@ -65,11 +74,16 @@ function chunkSequential(ids: string[], maxPerGroup: number): string[][] {
 async function applyPairing(
   tournamentId: string,
   input: SaveInput,
-  maxPerGroup: number
+  maxPerGroup: number,
+  startMethod: StartMethod
 ): Promise<{ ok: true } | { error: string; status: number }> {
-  if (input.groups.length > MAX_GROUPS) {
+  const maxGroups = maxGroupsFor(startMethod);
+  if (input.groups.length > maxGroups) {
     return {
-      error: `組は最大${MAX_GROUPS}組までです（現在${input.groups.length}組）。1組あたりの人数を増やすか手動で調整してください`,
+      error:
+        startMethod === "shotgun"
+          ? `ショットガンでは組は最大${maxGroups}組までです（現在${input.groups.length}組）。1組あたりの人数を増やすか、順次スタートに変更してください`
+          : `組は最大${maxGroups}組までです（現在${input.groups.length}組）`,
       status: 400,
     };
   }
@@ -77,13 +91,16 @@ async function applyPairing(
   if (new Set(groupNos).size !== groupNos.length) {
     return { error: "組番号が重複しています", status: 400 };
   }
-  // ショットガンは各組で開始ホールが異なる必要がある
-  const startHoles = input.groups.map((g) => g.startHole);
-  if (new Set(startHoles).size !== startHoles.length) {
-    return {
-      error: "開始ホールが重複しています。ショットガンでは各組に異なる開始ホールを設定してください",
-      status: 400,
-    };
+  // ショットガンは各組で開始ホールが異なる必要がある（順次は全組1番からなので不要）
+  if (startMethod === "shotgun") {
+    const startHoles = input.groups.map((g) => g.startHole);
+    if (new Set(startHoles).size !== startHoles.length) {
+      return {
+        error:
+          "開始ホールが重複しています。ショットガンでは各組に異なる開始ホールを設定してください",
+        status: 400,
+      };
+    }
   }
   const validGroupNos = new Set(groupNos);
 
@@ -111,7 +128,7 @@ async function applyPairing(
   await prisma.$transaction(async (tx) => {
     // 既存の組を削除（参加者の groupId は SetNull）
     await tx.group.deleteMany({ where: { tournamentId } });
-    // 新しい組を作成
+    // 新しい組を作成（順次スタートは全組1番から）
     const idByNo = new Map<number, string>();
     for (const g of input.groups) {
       const created = await tx.group.create({
@@ -119,7 +136,7 @@ async function applyPairing(
           tournamentId,
           groupNo: g.groupNo,
           name: g.name ?? null,
-          startHole: g.startHole,
+          startHole: startMethod === "sequential" ? 1 : g.startHole,
           pin: g.pin ?? null,
         },
       });
@@ -155,8 +172,8 @@ export async function PUT(
       { status: 400 }
     );
   }
-  const maxPerGroup = await getMaxPerGroup(id);
-  const result = await applyPairing(id, parsed.data, maxPerGroup);
+  const { maxPerGroup, startMethod } = await getPairingConfig(id);
+  const result = await applyPairing(id, parsed.data, maxPerGroup, startMethod);
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
@@ -172,7 +189,8 @@ export async function POST(
   if (denied) return denied;
   const { id } = await ctx.params;
 
-  const maxPerGroup = await getMaxPerGroup(id);
+  const { maxPerGroup, startMethod } = await getPairingConfig(id);
+  const maxGroups = maxGroupsFor(startMethod);
   const participants = await prisma.participant.findMany({
     where: { tournamentId: id },
     orderBy: [{ term: "asc" }, { name: "asc" }],
@@ -181,16 +199,20 @@ export async function POST(
 
   // まず期ごとに最大 maxPerGroup 名でまとめる（期の混在を避ける）
   let chunks = chunkByTerm(participants, maxPerGroup);
-  // 期数が多く18組を超える場合は、期順のまま詰め直して18組以内に収める
+  // 組数上限を超える場合は、期順のまま詰め直して収める
   // （同一期はできるだけ同組に残る。細かな調整は手動編集で対応）
-  if (chunks.length > MAX_GROUPS) {
-    chunks = chunkSequential(participants.map((p) => p.id), maxPerGroup);
+  if (chunks.length > maxGroups) {
+    chunks = chunkSequential(
+      participants.map((p) => p.id),
+      maxPerGroup
+    );
   }
 
   const groups = chunks.map((_, i) => ({
     groupNo: i + 1,
     name: null,
-    startHole: (i % 18) + 1,
+    // ショットガンは各組バラバラのホール、順次は全組1番から
+    startHole: startMethod === "sequential" ? 1 : (i % 18) + 1,
     pin: null,
   }));
   const assignments: Record<string, number | null> = {};
@@ -200,7 +222,12 @@ export async function POST(
     });
   });
 
-  const result = await applyPairing(id, { groups, assignments }, maxPerGroup);
+  const result = await applyPairing(
+    id,
+    { groups, assignments },
+    maxPerGroup,
+    startMethod
+  );
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }

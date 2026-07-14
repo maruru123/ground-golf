@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { maxGroupsFor } from "@/lib/tournamentLimits";
 import ParticipantsManager from "./ParticipantsManager";
 
 export const dynamic = "force-dynamic";
@@ -11,9 +12,11 @@ export default async function ParticipantsPage({
   const { id } = await params;
   const tournament = await prisma.tournament.findUnique({
     where: { id },
-    select: { maxPerGroup: true },
+    select: { maxPerGroup: true, startMethod: true },
   });
-  const maxTotal = 18 * (tournament?.maxPerGroup ?? 8);
+  const maxTotal =
+    maxGroupsFor(tournament?.startMethod ?? "shotgun") *
+    (tournament?.maxPerGroup ?? 8);
   const participants = await prisma.participant.findMany({
     where: { tournamentId: id },
     orderBy: [{ term: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }],

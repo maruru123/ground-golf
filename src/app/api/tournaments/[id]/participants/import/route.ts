@@ -3,9 +3,9 @@ import Papa from "papaparse";
 import { prisma } from "@/lib/prisma";
 import { guardAdmin } from "@/lib/api";
 import { genderToInternal, statusToInternal } from "@/lib/labels";
+import { maxGroupsFor } from "@/lib/tournamentLimits";
 
 const DEFAULT_PER_GROUP = 8;
-const MAX_GROUPS = 18; // 18ホール = 最大18組。組番号もこの範囲に収める
 
 /** 取込のロールバック用エラー（人数超過など） */
 class ImportError extends Error {
@@ -46,10 +46,12 @@ export async function POST(
 
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { maxPerGroup: true },
+    select: { maxPerGroup: true, startMethod: true },
   });
   const maxPerGroup = tournament?.maxPerGroup ?? DEFAULT_PER_GROUP;
-  const maxParticipants = MAX_GROUPS * maxPerGroup;
+  const startMethod = tournament?.startMethod ?? "shotgun";
+  const maxGroups = maxGroupsFor(startMethod);
+  const maxParticipants = maxGroups * maxPerGroup;
 
   const body = (await req.json().catch(() => null)) as { csv?: string } | null;
   const csv = body?.csv;
@@ -106,10 +108,10 @@ export async function POST(
     const groupStr = (raw.組番号 ?? "").trim();
     if (groupStr !== "") {
       const n = Number(groupStr);
-      if (!Number.isInteger(n) || n < 1 || n > MAX_GROUPS) {
+      if (!Number.isInteger(n) || n < 1 || n > maxGroups) {
         errors.push({
           row: rowNo,
-          message: `組番号は1〜${MAX_GROUPS}で指定してください: ${groupStr}`,
+          message: `組番号は1〜${maxGroups}で指定してください: ${groupStr}`,
         });
         return;
       }
@@ -182,7 +184,8 @@ export async function POST(
             data: {
               tournamentId,
               groupNo: no,
-              startHole: ((no - 1) % 18) + 1,
+              // 順次スタートは全組1番から、ショットガンは組番号から一意に割当
+              startHole: startMethod === "sequential" ? 1 : ((no - 1) % 18) + 1,
             },
           });
           groupIdByNo.set(no, g.id);
