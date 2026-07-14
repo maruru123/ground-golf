@@ -17,7 +17,8 @@ interface TournamentData {
   venue: string;
   status: string;
   startMethod: string;
-  holeCount: number;
+  roundCount: number;
+  holesPerRound: number;
   hioPoints: number;
   maxStrokes: number;
   maxPerGroup: number;
@@ -66,7 +67,8 @@ export default function SettingsForm({
           venue: tt.venue ?? "",
           status: tt.status,
           startMethod: tt.startMethod,
-          holeCount: tt.holeCount,
+          roundCount: tt.roundCount,
+          holesPerRound: tt.holesPerRound,
           hioPoints: tt.hioPoints,
           maxStrokes: tt.maxStrokes,
           maxPerGroup: tt.maxPerGroup,
@@ -257,20 +259,49 @@ export default function SettingsForm({
             方式を変えたら、ペアリングを再度保存してください（開始ホールの割当が変わります）。
           </p>
         </div>
-        <div className="sm:w-1/2">
-          <label className="block text-sm font-medium mb-1">ホール数</label>
-          <input
-            type="number"
-            min={1}
-            max={72}
-            value={t.holeCount}
-            onChange={(e) =>
-              setT({ ...t, holeCount: Math.max(1, toInt(e.target.value, 18)) })
-            }
-            className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-          />
+        <div>
+          <label className="block text-sm font-medium mb-1">ラウンド構成</label>
+          <div className="grid grid-cols-2 gap-4 sm:w-2/3">
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">
+                ラウンド数
+              </label>
+              <select
+                value={t.roundCount}
+                onChange={(e) =>
+                  setT({ ...t, roundCount: Number(e.target.value) })
+                }
+                className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              >
+                {[1, 2, 3, 4].map((r) => (
+                  <option key={r} value={r}>
+                    {r}ラウンド
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">
+                1ラウンドのホール数
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={18}
+                value={t.holesPerRound}
+                onChange={(e) =>
+                  setT({
+                    ...t,
+                    holesPerRound: Math.max(1, toInt(e.target.value, 18)),
+                  })
+                }
+                className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              />
+            </div>
+          </div>
           <p className="text-xs text-slate-400 mt-1">
-            プレーする総ホール数（既定18）。変更後はペアリングを再保存してください。
+            総ホール数 = <b>{t.roundCount * t.holesPerRound}</b> ホール。
+            変更後はペアリングを再保存してください。本式は1ラウンド=8ホール。
           </p>
         </div>
         <div className="sm:w-1/2">
@@ -299,7 +330,8 @@ export default function SettingsForm({
               {
                 maxPerGroup: t.maxPerGroup,
                 startMethod: t.startMethod,
-                holeCount: t.holeCount,
+                roundCount: t.roundCount,
+                holesPerRound: t.holesPerRound,
               },
               "組の設定を保存しました"
             )

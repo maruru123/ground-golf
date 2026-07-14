@@ -23,7 +23,9 @@ model Tournament {
   venue            String?
   status           String   @default("draft") // draft(準備中) / active(開催中) / closed(終了)
   startMethod      String   @default("shotgun") // shotgun(一斉) / sequential(順次スタート)
-  holeCount        Int      @default(18) // 総ホール数（例: 8/16/18/24/32）
+  roundCount       Int      @default(1) // ラウンド数（1〜4）
+  holesPerRound    Int      @default(18) // 1ラウンドのホール数（本式グラウンドゴルフは8）
+  holeCount        Int      @default(18) // 総ホール数（= roundCount × holesPerRound。派生値）
   hioPoints        Int      @default(-3) // ホールインワン(1打)の換算点
   maxStrokes       Int      @default(5) // 1ホールの上限打数（これを超える打数はこの値に丸める）
   maxPerGroup      Int      @default(8) // 1組あたりの人数上限

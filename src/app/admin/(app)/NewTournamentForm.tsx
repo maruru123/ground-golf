@@ -19,7 +19,8 @@ export default function NewTournamentForm() {
   const [startMethod, setStartMethod] = useState<"shotgun" | "sequential">(
     "shotgun"
   );
-  const [holeCount, setHoleCount] = useState(18);
+  const [roundCount, setRoundCount] = useState(1);
+  const [holesPerRound, setHolesPerRound] = useState(18);
   // スコアルールは既定値を初期表示（通常はそのままでOK）
   const [hioPoints, setHioPoints] = useState(-3);
   const [maxStrokes, setMaxStrokes] = useState(5);
@@ -40,7 +41,8 @@ export default function NewTournamentForm() {
           heldDate: date || null,
           venue: venue || null,
           startMethod,
-          holeCount,
+          roundCount,
+          holesPerRound,
           hioPoints,
           maxStrokes,
           maxPerGroup,
@@ -52,7 +54,8 @@ export default function NewTournamentForm() {
         setDate("");
         setVenue("");
         setStartMethod("shotgun");
-        setHoleCount(18);
+        setRoundCount(1);
+        setHolesPerRound(18);
         setHioPoints(-3);
         setMaxStrokes(5);
         setMaxPerGroup(8);
@@ -132,17 +135,45 @@ export default function NewTournamentForm() {
         </p>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">ホール数</label>
-        <input
-          type="number"
-          min={1}
-          max={72}
-          value={holeCount}
-          onChange={(e) => setHoleCount(Math.max(1, toInt(e.target.value, 18)))}
-          className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-        />
+        <label className="block text-sm font-medium mb-1">
+          ラウンド構成
+        </label>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">
+              ラウンド数
+            </label>
+            <select
+              value={roundCount}
+              onChange={(e) => setRoundCount(Number(e.target.value))}
+              className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            >
+              {[1, 2, 3, 4].map((r) => (
+                <option key={r} value={r}>
+                  {r}ラウンド
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">
+              1ラウンドのホール数
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={18}
+              value={holesPerRound}
+              onChange={(e) =>
+                setHolesPerRound(Math.max(1, toInt(e.target.value, 18)))
+              }
+              className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+          </div>
+        </div>
         <p className="text-xs text-slate-400 mt-1">
-          プレーする総ホール数。既定は18。グラウンドゴルフ本式なら 8/16/24/32 など。
+          総ホール数 = <b>{roundCount * holesPerRound}</b> ホール。既定は 1ラウンド×18。
+          グラウンドゴルフ本式は 1ラウンド=8ホール（2R=16 / 3R=24 / 4R=32）。
         </p>
       </div>
       <div>
