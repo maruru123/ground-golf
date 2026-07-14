@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+// 空欄・不正入力は既定値に丸める（空欄→0 など）
+const toInt = (v: string, fallback: number) => {
+  if (v.trim() === "") return fallback;
+  const n = Number(v);
+  return Number.isNaN(n) ? fallback : Math.trunc(n);
+};
+
 interface TournamentData {
   id: string;
   name: string;
@@ -188,7 +195,7 @@ export default function SettingsForm({
               type="number"
               value={t.hioPoints}
               onChange={(e) =>
-                setT({ ...t, hioPoints: Number(e.target.value) })
+                setT({ ...t, hioPoints: toInt(e.target.value, 0) })
               }
               className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
@@ -204,7 +211,7 @@ export default function SettingsForm({
               max={20}
               value={t.maxStrokes}
               onChange={(e) =>
-                setT({ ...t, maxStrokes: Number(e.target.value) })
+                setT({ ...t, maxStrokes: Math.max(1, toInt(e.target.value, 1)) })
               }
               className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
@@ -240,7 +247,7 @@ export default function SettingsForm({
             max={20}
             value={t.maxPerGroup}
             onChange={(e) =>
-              setT({ ...t, maxPerGroup: Number(e.target.value) })
+              setT({ ...t, maxPerGroup: Math.max(1, toInt(e.target.value, 1)) })
             }
             className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />

@@ -15,8 +15,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "合言葉を入力してください" }, { status: 400 });
   }
 
+  // 入力側の正規化（大文字・空白除去）に合わせて照合。開催中(active)の大会のみ受付。
+  const code = passcode.replace(/\s/g, "").toUpperCase();
   const tournament = await prisma.tournament.findFirst({
-    where: { scorePasscode: passcode },
+    where: { scorePasscode: code, status: "active" },
     include: {
       groups: {
         orderBy: { groupNo: "asc" },
@@ -26,7 +28,10 @@ export async function POST(req: Request) {
   });
 
   if (!tournament) {
-    return NextResponse.json({ error: "合言葉が違います" }, { status: 401 });
+    return NextResponse.json(
+      { error: "合言葉が違います（または現在は開催中ではありません）" },
+      { status: 401 }
+    );
   }
 
   return NextResponse.json({

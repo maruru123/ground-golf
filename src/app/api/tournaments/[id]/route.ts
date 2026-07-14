@@ -4,13 +4,26 @@ import { prisma } from "@/lib/prisma";
 import { guardAdmin } from "@/lib/api";
 import { randomPasscode, randomToken } from "@/lib/tokens";
 
+/** 他大会と重複しない合言葉を生成 */
+async function generateUniquePasscode(excludeId: string): Promise<string> {
+  for (let i = 0; i < 20; i++) {
+    const code = randomPasscode();
+    const dup = await prisma.tournament.findFirst({
+      where: { scorePasscode: code, id: { not: excludeId } },
+      select: { id: true },
+    });
+    if (!dup) return code;
+  }
+  return randomPasscode(); // 事実上到達しない保険
+}
+
 const updateSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   heldDate: z.string().nullable().optional(),
   venue: z.string().max(100).nullable().optional(),
   status: z.enum(["draft", "active", "closed"]).optional(),
   hioPoints: z.number().int().min(-20).max(20).optional(),
-  maxStrokes: z.number().int().min(2).max(20).optional(),
+  maxStrokes: z.number().int().min(1).max(20).optional(),
   maxPerGroup: z.number().int().min(1).max(20).optional(),
   scorePasscode: z.string().max(40).nullable().optional(),
   regeneratePasscode: z.boolean().optional(),
@@ -64,9 +77,27 @@ export async function PUT(
   if (d.maxStrokes !== undefined) data.maxStrokes = d.maxStrokes;
   if (d.maxPerGroup !== undefined) data.maxPerGroup = d.maxPerGroup;
 
-  if (d.regeneratePasscode) data.scorePasscode = randomPasscode();
-  else if (d.scorePasscode !== undefined)
-    data.scorePasscode = d.scorePasscode || null;
+  // 合言葉：発行/設定時に他大会との重複を防ぐ（入力側の正規化に合わせ大文字・空白除去）
+  if (d.regeneratePasscode) {
+    data.scorePasscode = await generateUniquePasscode(id);
+  } else if (d.scorePasscode !== undefined) {
+    const code = d.scorePasscode
+      ? d.scorePasscode.replace(/\s/g, "").toUpperCase()
+      : null;
+    if (code) {
+      const dup = await prisma.tournament.findFirst({
+        where: { scorePasscode: code, id: { not: id } },
+        select: { id: true },
+      });
+      if (dup) {
+        return NextResponse.json(
+          { error: "この合言葉は他の大会で使用中です。別の合言葉にしてください" },
+          { status: 409 }
+        );
+      }
+    }
+    data.scorePasscode = code;
+  }
 
   if (d.viewEnabled !== undefined) {
     data.viewEnabled = d.viewEnabled;

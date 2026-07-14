@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+// 空欄・不正入力は既定値に丸める（空欄→0 など）
+const toInt = (v: string, fallback: number) => {
+  if (v.trim() === "") return fallback;
+  const n = Number(v);
+  return Number.isNaN(n) ? fallback : Math.trunc(n);
+};
+
 export default function NewTournamentForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -110,7 +117,7 @@ export default function NewTournamentForm() {
             <input
               type="number"
               value={hioPoints}
-              onChange={(e) => setHioPoints(Number(e.target.value))}
+              onChange={(e) => setHioPoints(toInt(e.target.value, 0))}
               className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
@@ -121,7 +128,7 @@ export default function NewTournamentForm() {
               min={2}
               max={20}
               value={maxStrokes}
-              onChange={(e) => setMaxStrokes(Number(e.target.value))}
+              onChange={(e) => setMaxStrokes(Math.max(1, toInt(e.target.value, 1)))}
               className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
@@ -134,7 +141,7 @@ export default function NewTournamentForm() {
               min={1}
               max={20}
               value={maxPerGroup}
-              onChange={(e) => setMaxPerGroup(Number(e.target.value))}
+              onChange={(e) => setMaxPerGroup(Math.max(1, toInt(e.target.value, 1)))}
               className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>

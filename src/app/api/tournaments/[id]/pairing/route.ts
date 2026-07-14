@@ -54,9 +54,10 @@ function chunkByTerm(
 
 /** 期の境界を無視して先頭から maxPerGroup 名ずつ詰める */
 function chunkSequential(ids: string[], maxPerGroup: number): string[][] {
+  const step = Math.max(1, maxPerGroup); // 0での無限ループ防止
   const chunks: string[][] = [];
-  for (let i = 0; i < ids.length; i += maxPerGroup) {
-    chunks.push(ids.slice(i, i + maxPerGroup));
+  for (let i = 0; i < ids.length; i += step) {
+    chunks.push(ids.slice(i, i + step));
   }
   return chunks;
 }

@@ -58,6 +58,10 @@ export default function PairingEditor({
   }
 
   function addGroup() {
+    if (groups.length >= 18) {
+      setMsg("組は最大18組までです（ショットガン方式：18ホール）");
+      return;
+    }
     const nextNo = groups.length
       ? Math.max(...groups.map((g) => g.groupNo)) + 1
       : 1;

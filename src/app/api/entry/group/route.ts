@@ -43,6 +43,13 @@ export async function POST(req: Request) {
   if (!group || !secretEquals(passcode, group.tournament.scorePasscode)) {
     return NextResponse.json({ error: "合言葉が違います" }, { status: 401 });
   }
+  // 開催中(active)以外は受付しない（合言葉が漏れても準備中/終了の大会には入れない）
+  if (group.tournament.status !== "active") {
+    return NextResponse.json(
+      { error: "現在は開催中ではありません（開催中のみ入場できます）" },
+      { status: 403 }
+    );
+  }
   if (group.pin && !secretEquals(pin, group.pin)) {
     return NextResponse.json({ error: "組のPINが違います" }, { status: 401 });
   }

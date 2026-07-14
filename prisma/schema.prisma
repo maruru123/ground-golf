@@ -25,7 +25,7 @@ model Tournament {
   hioPoints        Int      @default(-3) // ホールインワン(1打)の換算点
   maxStrokes       Int      @default(5) // 1ホールの上限打数（これを超える打数はこの値に丸める）
   maxPerGroup      Int      @default(8) // 1組あたりの人数上限
-  scorePasscode    String? // スコア入力用合言葉
+  scorePasscode    String?  @unique // スコア入力用合言葉（大会間で重複不可）
   viewEnabled      Boolean  @default(false) // 閲覧専用URLの発行有無
   viewToken        String?  @unique // 閲覧URLのトークン
   viewPassword     String? // 閲覧PW(任意)。管理者が参加者へ提示するため平文保持
