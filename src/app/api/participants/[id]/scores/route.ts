@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthed, secretEquals } from "@/lib/auth";
+import { withDbRetry } from "@/lib/dbRetry";
 
 const schema = z.object({
   holeNo: z.number().int().min(1).max(99), // 実際の上限は大会のホール数で検証
@@ -25,15 +26,17 @@ export async function PUT(
   }
   const { holeNo, strokes, passcode, pin } = parsed.data;
 
-  const participant = await prisma.participant.findUnique({
-    where: { id },
-    include: {
-      tournament: {
-        select: { status: true, scorePasscode: true, holeCount: true },
+  const participant = await withDbRetry(() =>
+    prisma.participant.findUnique({
+      where: { id },
+      include: {
+        tournament: {
+          select: { status: true, scorePasscode: true, holeCount: true },
+        },
+        group: { select: { pin: true } },
       },
-      group: { select: { pin: true } },
-    },
-  });
+    })
+  );
   if (!participant) {
     return NextResponse.json({ error: "参加者が見つかりません" }, { status: 404 });
   }
@@ -61,15 +64,19 @@ export async function PUT(
   }
 
   if (strokes == null) {
-    await prisma.score.deleteMany({
-      where: { participantId: id, holeNo },
-    });
+    await withDbRetry(() =>
+      prisma.score.deleteMany({
+        where: { participantId: id, holeNo },
+      })
+    );
   } else {
-    await prisma.score.upsert({
-      where: { participantId_holeNo: { participantId: id, holeNo } },
-      create: { participantId: id, holeNo, strokes },
-      update: { strokes },
-    });
+    await withDbRetry(() =>
+      prisma.score.upsert({
+        where: { participantId_holeNo: { participantId: id, holeNo } },
+        create: { participantId: id, holeNo, strokes },
+        update: { strokes },
+      })
+    );
   }
 
   return NextResponse.json({ ok: true });
