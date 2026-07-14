@@ -39,10 +39,10 @@ export async function POST(
 
   const tournament = await prisma.tournament.findUnique({
     where: { id },
-    select: { maxPerGroup: true, startMethod: true },
+    select: { maxPerGroup: true, startMethod: true, holeCount: true },
   });
   const maxParticipants =
-    maxGroupsFor(tournament?.startMethod ?? "shotgun") *
+    maxGroupsFor(tournament?.startMethod ?? "shotgun", tournament?.holeCount ?? 18) *
     (tournament?.maxPerGroup ?? DEFAULT_PER_GROUP);
   const count = await prisma.participant.count({ where: { tournamentId: id } });
   if (count >= maxParticipants) {

@@ -20,17 +20,19 @@ export default function PairingEditor({
   tournamentId,
   maxPerGroup,
   startMethod,
+  holeCount,
   initialGroups,
   participants,
 }: {
   tournamentId: string;
   maxPerGroup: number;
   startMethod: string;
+  holeCount: number;
   initialGroups: GroupMeta[];
   participants: Part[];
 }) {
   const isSequential = startMethod === "sequential";
-  const maxGroups = maxGroupsFor(startMethod);
+  const maxGroups = maxGroupsFor(startMethod, holeCount);
   const router = useRouter();
   const [groups, setGroups] = useState<GroupMeta[]>(initialGroups);
   const [assign, setAssign] = useState<Record<string, number | null>>(
@@ -67,7 +69,7 @@ export default function PairingEditor({
       setMsg(
         isSequential
           ? `組は最大${maxGroups}組までです`
-          : "組は最大18組までです（ショットガン方式：18ホール）"
+          : `組は最大${maxGroups}組までです（ショットガン方式：${holeCount}ホール）`
       );
       return;
     }
@@ -79,7 +81,7 @@ export default function PairingEditor({
       {
         groupNo: nextNo,
         name: "",
-        startHole: isSequential ? 1 : ((nextNo - 1) % 18) + 1,
+        startHole: isSequential ? 1 : ((nextNo - 1) % holeCount) + 1,
       },
     ]);
   }
@@ -243,11 +245,13 @@ export default function PairingEditor({
                       }
                       className="ml-1 rounded border border-slate-300 px-1 py-1"
                     >
-                      {Array.from({ length: 18 }, (_, i) => i + 1).map((h) => (
-                        <option key={h} value={h}>
-                          {h}番
-                        </option>
-                      ))}
+                      {Array.from({ length: holeCount }, (_, i) => i + 1).map(
+                        (h) => (
+                          <option key={h} value={h}>
+                            {h}番
+                          </option>
+                        )
+                      )}
                     </select>
                   </label>
                 )}

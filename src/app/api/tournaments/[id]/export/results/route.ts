@@ -30,23 +30,11 @@ export async function GET(
     }
   }
 
-  const fields = [
-    "順位",
-    "氏名",
-    "期",
-    "OUT",
-    "IN",
-    "合計",
-    "HIO回数",
-    "状態",
-    "受賞",
-  ];
+  const fields = ["順位", "氏名", "期", "合計", "HIO回数", "状態", "受賞"];
   const data = standings.map((s) => [
     s.eligible && s.rank != null ? s.rank : "",
     s.name,
     s.term ?? "",
-    s.summary.enteredHoles > 0 ? s.summary.out : "",
-    s.summary.enteredHoles > 0 ? s.summary.in : "",
     s.summary.enteredHoles > 0 ? s.summary.total : "",
     s.summary.hioCount,
     PARTICIPANT_STATUS_LABELS[s.status] ?? s.status,

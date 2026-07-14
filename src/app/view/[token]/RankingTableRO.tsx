@@ -5,8 +5,6 @@ export interface RORow {
   term: number | null;
   rank: number | null;
   eligible: boolean;
-  out: number;
-  in: number;
   total: number;
   hioCount: number;
   complete: boolean;
@@ -23,8 +21,6 @@ export default function RankingTableRO({ rows }: { rows: RORow[] }) {
             <th className="px-3 py-2 w-14">順位</th>
             <th className="px-3 py-2">氏名</th>
             <th className="px-3 py-2 w-12">期</th>
-            <th className="px-3 py-2 w-12 text-right">OUT</th>
-            <th className="px-3 py-2 w-12 text-right">IN</th>
             <th className="px-3 py-2 w-14 text-right">合計</th>
             <th className="px-3 py-2 w-14">備考</th>
           </tr>
@@ -32,7 +28,7 @@ export default function RankingTableRO({ rows }: { rows: RORow[] }) {
         <tbody>
           {rows.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-3 py-6 text-center text-slate-400">
+              <td colSpan={5} className="px-3 py-6 text-center text-slate-400">
                 データがありません。
               </td>
             </tr>
@@ -49,12 +45,6 @@ export default function RankingTableRO({ rows }: { rows: RORow[] }) {
               </td>
               <td className="px-3 py-2 font-medium">{s.name}</td>
               <td className="px-3 py-2">{s.term ?? "-"}</td>
-              <td className="px-3 py-2 text-right">
-                {s.entered > 0 ? s.out : "-"}
-              </td>
-              <td className="px-3 py-2 text-right">
-                {s.entered > 0 ? s.in : "-"}
-              </td>
               <td className="px-3 py-2 text-right font-semibold">
                 {s.entered > 0 ? s.total : "-"}
               </td>

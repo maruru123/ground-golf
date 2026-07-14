@@ -15,17 +15,18 @@ interface Group {
   members: Member[];
 }
 
-const HOLES = Array.from({ length: 18 }, (_, i) => i + 1);
-
 export default function ScoreMonitor({
   groups,
   rule,
+  holeCount,
 }: {
   groups: Group[];
   rule: ScoreRule;
+  holeCount: number;
 }) {
   const [data, setData] = useState<Group[]>(groups);
   const [err, setErr] = useState("");
+  const HOLES = Array.from({ length: holeCount }, (_, i) => i + 1);
 
   async function save(memberId: string, hole: number, raw: string) {
     let strokes: number | null = null;
@@ -62,7 +63,7 @@ export default function ScoreMonitor({
   function total(m: Member) {
     const map = new Map<number, number | null>();
     for (const [k, v] of Object.entries(m.scores)) map.set(Number(k), v);
-    return summarizeScores(map, rule);
+    return summarizeScores(map, rule, holeCount);
   }
 
   if (groups.length === 0) {

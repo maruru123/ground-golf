@@ -17,6 +17,7 @@ interface TournamentData {
   venue: string;
   status: string;
   startMethod: string;
+  holeCount: number;
   hioPoints: number;
   maxStrokes: number;
   maxPerGroup: number;
@@ -65,6 +66,7 @@ export default function SettingsForm({
           venue: tt.venue ?? "",
           status: tt.status,
           startMethod: tt.startMethod,
+          holeCount: tt.holeCount,
           hioPoints: tt.hioPoints,
           maxStrokes: tt.maxStrokes,
           maxPerGroup: tt.maxPerGroup,
@@ -256,6 +258,22 @@ export default function SettingsForm({
           </p>
         </div>
         <div className="sm:w-1/2">
+          <label className="block text-sm font-medium mb-1">ホール数</label>
+          <input
+            type="number"
+            min={1}
+            max={72}
+            value={t.holeCount}
+            onChange={(e) =>
+              setT({ ...t, holeCount: Math.max(1, toInt(e.target.value, 18)) })
+            }
+            className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            プレーする総ホール数（既定18）。変更後はペアリングを再保存してください。
+          </p>
+        </div>
+        <div className="sm:w-1/2">
           <label className="block text-sm font-medium mb-1">
             1組あたりの人数上限
           </label>
@@ -278,7 +296,11 @@ export default function SettingsForm({
           disabled={busy}
           onClick={() =>
             patch(
-              { maxPerGroup: t.maxPerGroup, startMethod: t.startMethod },
+              {
+                maxPerGroup: t.maxPerGroup,
+                startMethod: t.startMethod,
+                holeCount: t.holeCount,
+              },
               "組の設定を保存しました"
             )
           }

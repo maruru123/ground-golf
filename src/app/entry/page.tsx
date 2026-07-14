@@ -32,6 +32,7 @@ export default function EntryPage() {
   const [passcode, setPasscode] = useState("");
   const [pin, setPin] = useState("");
   const [rule, setRule] = useState<ScoreRule>(DEFAULT_RULE);
+  const [holeCount, setHoleCount] = useState(18);
   const [tournament, setTournament] = useState<{
     id: string;
     name: string;
@@ -116,7 +117,9 @@ export default function EntryPage() {
         setMembers(data.members);
         setStatus(data.status);
         if (data.rule) setRule(data.rule);
-        setOrder(playOrder(data.group.startHole));
+        const hc = data.holeCount ?? 18;
+        setHoleCount(hc);
+        setOrder(playOrder(data.group.startHole, hc));
         setHoleIdx(0);
         setStep("input");
         sessionStorage.setItem(
@@ -134,7 +137,7 @@ export default function EntryPage() {
   function memberSummary(m: Member) {
     const map = new Map<number, number | null>();
     for (const [k, v] of Object.entries(m.scores)) map.set(Number(k), v);
-    return summarizeScores(map, rule);
+    return summarizeScores(map, rule, holeCount);
   }
 
   async function setStroke(memberId: string, hole: number, next: number | null) {
@@ -275,14 +278,9 @@ export default function EntryPage() {
           </span>
         </div>
         <div className="flex items-baseline justify-between mt-2">
-          <div className="text-2xl font-bold">
-            ホール {hole}
-            <span className="text-sm font-normal ml-2">
-              {hole <= 9 ? "OUT" : "IN"}
-            </span>
-          </div>
+          <div className="text-2xl font-bold">ホール {hole}</div>
           <div className="text-sm">
-            {holeIdx + 1} / 18
+            {holeIdx + 1} / {holeCount}
           </div>
         </div>
       </div>
@@ -309,7 +307,7 @@ export default function EntryPage() {
               <div className="flex items-center justify-between">
                 <div className="font-medium">{m.name}</div>
                 <div className="text-xs text-slate-400">
-                  OUT {sum.out} / IN {sum.in} / 計 {sum.total}
+                  計 {sum.total}（{sum.enteredHoles}/{holeCount}）
                 </div>
               </div>
               <div className="flex items-center justify-between mt-2">

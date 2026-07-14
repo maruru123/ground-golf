@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { isAdminAuthed, secretEquals } from "@/lib/auth";
 
 const schema = z.object({
-  holeNo: z.number().int().min(1).max(18),
+  holeNo: z.number().int().min(1).max(99), // 実際の上限は大会のホール数で検証
   strokes: z.number().int().min(1).max(20).nullable(),
   passcode: z.string().optional(),
   pin: z.string().optional(),
@@ -28,12 +28,20 @@ export async function PUT(
   const participant = await prisma.participant.findUnique({
     where: { id },
     include: {
-      tournament: { select: { status: true, scorePasscode: true } },
+      tournament: {
+        select: { status: true, scorePasscode: true, holeCount: true },
+      },
       group: { select: { pin: true } },
     },
   });
   if (!participant) {
     return NextResponse.json({ error: "参加者が見つかりません" }, { status: 404 });
+  }
+  if (holeNo > participant.tournament.holeCount) {
+    return NextResponse.json(
+      { error: `ホール番号が範囲外です（1〜${participant.tournament.holeCount}）` },
+      { status: 400 }
+    );
   }
 
   const admin = await isAdminAuthed();

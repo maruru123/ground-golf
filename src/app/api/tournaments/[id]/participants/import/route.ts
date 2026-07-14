@@ -46,11 +46,12 @@ export async function POST(
 
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { maxPerGroup: true, startMethod: true },
+    select: { maxPerGroup: true, startMethod: true, holeCount: true },
   });
   const maxPerGroup = tournament?.maxPerGroup ?? DEFAULT_PER_GROUP;
   const startMethod = tournament?.startMethod ?? "shotgun";
-  const maxGroups = maxGroupsFor(startMethod);
+  const holeCount = tournament?.holeCount ?? 18;
+  const maxGroups = maxGroupsFor(startMethod, holeCount);
   const maxParticipants = maxGroups * maxPerGroup;
 
   const body = (await req.json().catch(() => null)) as { csv?: string } | null;
@@ -185,7 +186,8 @@ export async function POST(
               tournamentId,
               groupNo: no,
               // 順次スタートは全組1番から、ショットガンは組番号から一意に割当
-              startHole: startMethod === "sequential" ? 1 : ((no - 1) % 18) + 1,
+              startHole:
+                startMethod === "sequential" ? 1 : ((no - 1) % holeCount) + 1,
             },
           });
           groupIdByNo.set(no, g.id);

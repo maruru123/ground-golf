@@ -23,11 +23,12 @@ export interface Standing {
 export async function computeStandings(tournamentId: string): Promise<Standing[]> {
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { hioPoints: true, maxStrokes: true },
+    select: { hioPoints: true, maxStrokes: true, holeCount: true },
   });
   const rule: ScoreRule = tournament
     ? { hioPoints: tournament.hioPoints, maxStrokes: tournament.maxStrokes }
     : DEFAULT_RULE;
+  const holeCount = tournament?.holeCount ?? 18;
 
   const participants = await prisma.participant.findMany({
     where: { tournamentId },
@@ -40,7 +41,7 @@ export async function computeStandings(tournamentId: string): Promise<Standing[]
   const withSummary = participants.map((p) => {
     const map = new Map<number, number | null>();
     for (const s of p.scores) map.set(s.holeNo, s.strokes);
-    const summary = summarizeScores(map, rule);
+    const summary = summarizeScores(map, rule, holeCount);
     return { p, summary };
   });
 

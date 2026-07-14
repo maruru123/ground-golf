@@ -39,12 +39,12 @@ export default async function AnalysisPage({
     <div className="space-y-5">
       <h2 className="font-bold text-slate-800">期別平均スコア</h2>
       <p className="text-sm text-slate-500">
-        正式対象（全18ホール入力済・参加者）のみを集計しています。
+        正式対象（全ホール入力済・参加者）のみを集計しています。
       </p>
 
       {terms.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-400">
-          集計対象がまだありません（全18ホール入力済の参加者が必要です）。
+          集計対象がまだありません（全ホール入力済の参加者が必要です）。
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">

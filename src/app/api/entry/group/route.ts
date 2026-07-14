@@ -31,6 +31,7 @@ export async function POST(req: Request) {
           status: true,
           hioPoints: true,
           maxStrokes: true,
+          holeCount: true,
         },
       },
       participants: {
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
       hioPoints: group.tournament.hioPoints,
       maxStrokes: group.tournament.maxStrokes,
     },
+    holeCount: group.tournament.holeCount,
     group: {
       id: group.id,
       groupNo: group.groupNo,

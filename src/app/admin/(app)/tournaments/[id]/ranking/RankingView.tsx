@@ -127,8 +127,6 @@ export default function RankingView({
               <th className="px-3 py-2 w-14">順位</th>
               <th className="px-3 py-2">氏名</th>
               <th className="px-3 py-2 w-14">期</th>
-              <th className="px-3 py-2 w-14 text-right">OUT</th>
-              <th className="px-3 py-2 w-14 text-right">IN</th>
               <th className="px-3 py-2 w-16 text-right">合計</th>
               <th className="px-3 py-2 w-16">備考</th>
             </tr>
@@ -136,7 +134,7 @@ export default function RankingView({
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-400">
+                <td colSpan={5} className="px-3 py-6 text-center text-slate-400">
                   データがありません。
                 </td>
               </tr>
@@ -153,12 +151,6 @@ export default function RankingView({
                 </td>
                 <td className="px-3 py-2 font-medium">{s.name}</td>
                 <td className="px-3 py-2">{s.term ?? "-"}</td>
-                <td className="px-3 py-2 text-right">
-                  {s.summary.enteredHoles > 0 ? s.summary.out : "-"}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  {s.summary.enteredHoles > 0 ? s.summary.in : "-"}
-                </td>
                 <td className="px-3 py-2 text-right font-semibold">
                   {s.summary.enteredHoles > 0 ? s.summary.total : "-"}
                 </td>

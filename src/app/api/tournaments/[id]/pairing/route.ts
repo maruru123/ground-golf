@@ -9,18 +9,22 @@ import {
 } from "@/lib/tournamentLimits";
 
 const DEFAULT_PER_GROUP = 8; // 大会未設定時のフォールバック
+const DEFAULT_HOLE_COUNT = 18;
 
 /** 大会のペアリング関連設定を取得（未設定時は既定にフォールバック） */
-async function getPairingConfig(
-  tournamentId: string
-): Promise<{ maxPerGroup: number; startMethod: StartMethod }> {
+async function getPairingConfig(tournamentId: string): Promise<{
+  maxPerGroup: number;
+  startMethod: StartMethod;
+  holeCount: number;
+}> {
   const t = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { maxPerGroup: true, startMethod: true },
+    select: { maxPerGroup: true, startMethod: true, holeCount: true },
   });
   return {
     maxPerGroup: t?.maxPerGroup ?? DEFAULT_PER_GROUP,
     startMethod: (t?.startMethod as StartMethod) ?? "shotgun",
+    holeCount: t?.holeCount ?? DEFAULT_HOLE_COUNT,
   };
 }
 
@@ -30,7 +34,7 @@ const saveSchema = z.object({
       z.object({
         groupNo: z.number().int().min(1),
         name: z.string().max(50).nullable().optional(),
-        startHole: z.number().int().min(1).max(18),
+        startHole: z.number().int().min(1).max(99), // 実際の上限は大会のホール数で検証
         pin: z.string().max(20).nullable().optional(),
       })
     )
@@ -75,14 +79,15 @@ async function applyPairing(
   tournamentId: string,
   input: SaveInput,
   maxPerGroup: number,
-  startMethod: StartMethod
+  startMethod: StartMethod,
+  holeCount: number
 ): Promise<{ ok: true } | { error: string; status: number }> {
-  const maxGroups = maxGroupsFor(startMethod);
+  const maxGroups = maxGroupsFor(startMethod, holeCount);
   if (input.groups.length > maxGroups) {
     return {
       error:
         startMethod === "shotgun"
-          ? `ショットガンでは組は最大${maxGroups}組までです（現在${input.groups.length}組）。1組あたりの人数を増やすか、順次スタートに変更してください`
+          ? `ショットガンでは組は最大${maxGroups}組までです（ホール数=${holeCount}。現在${input.groups.length}組）。1組あたりの人数を増やすか、順次スタートに変更してください`
           : `組は最大${maxGroups}組までです（現在${input.groups.length}組）`,
       status: 400,
     };
@@ -94,6 +99,12 @@ async function applyPairing(
   // ショットガンは各組で開始ホールが異なる必要がある（順次は全組1番からなので不要）
   if (startMethod === "shotgun") {
     const startHoles = input.groups.map((g) => g.startHole);
+    if (startHoles.some((h) => h > holeCount)) {
+      return {
+        error: `開始ホールはホール数（${holeCount}）以内で指定してください`,
+        status: 400,
+      };
+    }
     if (new Set(startHoles).size !== startHoles.length) {
       return {
         error:
@@ -172,8 +183,14 @@ export async function PUT(
       { status: 400 }
     );
   }
-  const { maxPerGroup, startMethod } = await getPairingConfig(id);
-  const result = await applyPairing(id, parsed.data, maxPerGroup, startMethod);
+  const { maxPerGroup, startMethod, holeCount } = await getPairingConfig(id);
+  const result = await applyPairing(
+    id,
+    parsed.data,
+    maxPerGroup,
+    startMethod,
+    holeCount
+  );
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
@@ -189,8 +206,8 @@ export async function POST(
   if (denied) return denied;
   const { id } = await ctx.params;
 
-  const { maxPerGroup, startMethod } = await getPairingConfig(id);
-  const maxGroups = maxGroupsFor(startMethod);
+  const { maxPerGroup, startMethod, holeCount } = await getPairingConfig(id);
+  const maxGroups = maxGroupsFor(startMethod, holeCount);
   const participants = await prisma.participant.findMany({
     where: { tournamentId: id },
     orderBy: [{ term: "asc" }, { name: "asc" }],
@@ -212,7 +229,7 @@ export async function POST(
     groupNo: i + 1,
     name: null,
     // ショットガンは各組バラバラのホール、順次は全組1番から
-    startHole: startMethod === "sequential" ? 1 : (i % 18) + 1,
+    startHole: startMethod === "sequential" ? 1 : (i % holeCount) + 1,
     pin: null,
   }));
   const assignments: Record<string, number | null> = {};
@@ -226,7 +243,8 @@ export async function POST(
     id,
     { groups, assignments },
     maxPerGroup,
-    startMethod
+    startMethod,
+    holeCount
   );
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });

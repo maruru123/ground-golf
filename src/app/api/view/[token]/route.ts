@@ -33,8 +33,6 @@ export async function POST(
     term: s.term,
     rank: s.rank,
     eligible: s.eligible,
-    out: s.summary.out,
-    in: s.summary.in,
     total: s.summary.total,
     hioCount: s.summary.hioCount,
     complete: s.summary.complete,

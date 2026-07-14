@@ -19,6 +19,7 @@ export default function NewTournamentForm() {
   const [startMethod, setStartMethod] = useState<"shotgun" | "sequential">(
     "shotgun"
   );
+  const [holeCount, setHoleCount] = useState(18);
   // スコアルールは既定値を初期表示（通常はそのままでOK）
   const [hioPoints, setHioPoints] = useState(-3);
   const [maxStrokes, setMaxStrokes] = useState(5);
@@ -39,6 +40,7 @@ export default function NewTournamentForm() {
           heldDate: date || null,
           venue: venue || null,
           startMethod,
+          holeCount,
           hioPoints,
           maxStrokes,
           maxPerGroup,
@@ -50,6 +52,7 @@ export default function NewTournamentForm() {
         setDate("");
         setVenue("");
         setStartMethod("shotgun");
+        setHoleCount(18);
         setHioPoints(-3);
         setMaxStrokes(5);
         setMaxPerGroup(8);
@@ -125,7 +128,21 @@ export default function NewTournamentForm() {
           <option value="sequential">順次スタート（1番から時間差）</option>
         </select>
         <p className="text-xs text-slate-400 mt-1">
-          通常はショットガン。組数が18を超える場合は順次スタートを選んでください。
+          通常はショットガン。組数がホール数を超える場合は順次スタートを選んでください。
+        </p>
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">ホール数</label>
+        <input
+          type="number"
+          min={1}
+          max={72}
+          value={holeCount}
+          onChange={(e) => setHoleCount(Math.max(1, toInt(e.target.value, 18)))}
+          className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        />
+        <p className="text-xs text-slate-400 mt-1">
+          プレーする総ホール数。既定は18。グラウンドゴルフ本式なら 8/16/24/32 など。
         </p>
       </div>
       <div>

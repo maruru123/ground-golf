@@ -13,10 +13,7 @@ export interface ScoreRule {
 
 export const DEFAULT_RULE: ScoreRule = { hioPoints: -3, maxStrokes: 5 };
 
-export const TOTAL_HOLES = 18;
-export const OUT_HOLES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-export const IN_HOLES = [10, 11, 12, 13, 14, 15, 16, 17, 18];
-export const ALL_HOLES = Array.from({ length: TOTAL_HOLES }, (_, i) => i + 1);
+export const DEFAULT_HOLE_COUNT = 18; // 大会未設定時のフォールバック
 
 /** ホールインワン（1打）判定 */
 export function isHoleInOne(strokes: number | null | undefined): boolean {
@@ -34,53 +31,51 @@ export function holePoints(
 }
 
 export interface ScoreSummary {
-  out: number; // 前半(1-9)の換算合計
-  in: number; // 後半(10-18)の換算合計
   total: number; // 合計（順位対象値）
   enteredHoles: number; // 入力済みホール数
-  complete: boolean; // 全18ホール入力済みか
+  complete: boolean; // 全ホール入力済みか
   hioCount: number; // ホールインワン回数
 }
 
-/** ホール番号 -> 実打数 のマップから小計・合計・HIO数を算出。 */
+/** ホール番号 -> 実打数 のマップから合計・HIO数を算出。 */
 export function summarizeScores(
   strokesByHole: Map<number, number | null | undefined>,
-  rule: ScoreRule = DEFAULT_RULE
+  rule: ScoreRule = DEFAULT_RULE,
+  holeCount: number = DEFAULT_HOLE_COUNT
 ): ScoreSummary {
-  let out = 0;
-  let inn = 0;
+  let total = 0;
   let entered = 0;
   let hio = 0;
 
-  for (const hole of ALL_HOLES) {
+  for (let hole = 1; hole <= holeCount; hole++) {
     const strokes = strokesByHole.get(hole);
     const pts = holePoints(strokes, rule);
     if (pts == null) continue;
     entered++;
-    if (hole <= 9) out += pts;
-    else inn += pts;
+    total += pts;
     if (isHoleInOne(strokes)) hio++;
   }
 
   return {
-    out,
-    in: inn,
-    total: out + inn,
+    total,
     enteredHoles: entered,
-    complete: entered === TOTAL_HOLES,
+    complete: entered === holeCount,
     hioCount: hio,
   };
 }
 
 /**
  * ショットガン方式のプレー順（入力導線）。
- * 開始ホールから始まり18ホールを一巡する順序を返す。
- * 例: startHole=5 => [5,6,...,18,1,2,3,4]
+ * 開始ホールから始まり全ホールを一巡する順序を返す。
+ * 例: startHole=5, holeCount=18 => [5,6,...,18,1,2,3,4]
  */
-export function playOrder(startHole: number): number[] {
+export function playOrder(
+  startHole: number,
+  holeCount: number = DEFAULT_HOLE_COUNT
+): number[] {
   const order: number[] = [];
-  for (let i = 0; i < TOTAL_HOLES; i++) {
-    order.push(((startHole - 1 + i) % TOTAL_HOLES) + 1);
+  for (let i = 0; i < holeCount; i++) {
+    order.push(((startHole - 1 + i) % holeCount) + 1);
   }
   return order;
 }
