@@ -33,13 +33,16 @@ export default function RankingView({
 
   const rows = officialOnly ? standings.filter((s) => s.eligible) : standings;
 
-  async function createAuto(kind: "rank" | "hio") {
+  async function createAuto(
+    kind: "rank" | "hio",
+    category?: "overall" | "term" | "gender"
+  ) {
     setBusy(true);
     setMsg("");
     const res = await fetch(`/api/tournaments/${tournamentId}/awards`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind }),
+      body: JSON.stringify({ kind, category }),
     });
     const data = await res.json();
     setBusy(false);
@@ -103,7 +106,7 @@ export default function RankingView({
             onChange={(e) => setOfficialOnly(e.target.checked)}
             className="w-5 h-5"
           />
-          正式対象のみ表示（全18H入力済・参加者）
+          正式対象のみ表示（全ホール入力済・参加者）
         </label>
         <a
           href={`/api/tournaments/${tournamentId}/export/results`}
@@ -181,17 +184,31 @@ export default function RankingView({
           <h2 className="font-bold text-slate-800">表彰</h2>
           <button
             disabled={busy}
-            onClick={() => createAuto("rank")}
+            onClick={() => createAuto("rank", "overall")}
             className="tap text-sm rounded-lg bg-brand-500 text-white px-3 py-1.5 hover:bg-brand-600"
           >
-            上位3位を作成
+            総合 上位3位
+          </button>
+          <button
+            disabled={busy}
+            onClick={() => createAuto("rank", "term")}
+            className="tap text-sm rounded-lg bg-brand-500 text-white px-3 py-1.5 hover:bg-brand-600"
+          >
+            期別 上位3位
+          </button>
+          <button
+            disabled={busy}
+            onClick={() => createAuto("rank", "gender")}
+            className="tap text-sm rounded-lg bg-brand-500 text-white px-3 py-1.5 hover:bg-brand-600"
+          >
+            男女別 上位3位
           </button>
           <button
             disabled={busy}
             onClick={() => createAuto("hio")}
             className="tap text-sm rounded-lg bg-brand-500 text-white px-3 py-1.5 hover:bg-brand-600"
           >
-            ホールインワン賞を作成
+            ホールインワン賞
           </button>
           <button
             disabled={busy}

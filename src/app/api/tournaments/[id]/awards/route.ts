@@ -2,14 +2,66 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { guardAdmin } from "@/lib/api";
-import { computeStandings } from "@/lib/standings";
+import { computeStandings, type Standing } from "@/lib/standings";
+import { rankParticipants } from "@/lib/scoring";
+import { GENDER_LABELS } from "@/lib/labels";
 
 const createSchema = z.object({
   kind: z.enum(["rank", "hio", "manual"]),
+  category: z.enum(["overall", "term", "gender"]).optional(), // rank の部門
   name: z.string().trim().max(60).optional(),
   participantIds: z.array(z.string()).optional(),
   note: z.string().max(60).optional(),
 });
+
+const GENDER_ORDER: Record<string, number> = { male: 0, female: 1, other: 2 };
+
+/** 部門（期別 or 男女別）ごとに上位3位を選出。部門値なし(null)は対象外。 */
+function categoryTop3(
+  standings: Standing[],
+  by: "term" | "gender"
+): { participantId: string; note: string | null }[] {
+  const groups = new Map<string, Standing[]>();
+  for (const s of standings) {
+    const key = by === "term" ? (s.term != null ? String(s.term) : null) : s.gender;
+    if (key == null) continue;
+    const arr = groups.get(key);
+    if (arr) arr.push(s);
+    else groups.set(key, [s]);
+  }
+
+  const rows: {
+    participantId: string;
+    note: string;
+    catSort: number;
+    rank: number;
+  }[] = [];
+  for (const [key, members] of groups) {
+    const ranked = rankParticipants(
+      members.map((m) => ({
+        id: m.participantId,
+        total: m.summary.total,
+        complete: m.summary.complete,
+        status: m.status,
+      }))
+    );
+    const rankById = new Map(ranked.map((r) => [r.id, r]));
+    for (const m of members) {
+      const r = rankById.get(m.participantId)!;
+      if (r.eligible && r.rank != null && r.rank <= 3) {
+        const label = by === "term" ? `${key}期` : GENDER_LABELS[key] ?? key;
+        rows.push({
+          participantId: m.participantId,
+          note: `${label} ${r.rank}位`,
+          catSort: by === "term" ? Number(key) : GENDER_ORDER[key] ?? 9,
+          rank: r.rank,
+        });
+      }
+    }
+  }
+  rows.sort((a, b) => a.catSort - b.catSort || a.rank - b.rank);
+  return rows.map(({ participantId, note }) => ({ participantId, note }));
+}
 
 export async function GET(
   _req: Request,
@@ -54,11 +106,20 @@ export async function POST(
   let winners: { participantId: string; note: string | null }[] = [];
 
   if (kind === "rank") {
-    if (!name) name = "総合上位3位";
+    const category = parsed.data.category ?? "overall";
     const standings = await computeStandings(id);
-    winners = standings
-      .filter((s) => s.eligible && s.rank != null && s.rank <= 3)
-      .map((s) => ({ participantId: s.participantId, note: `${s.rank}位` }));
+    if (category === "term") {
+      if (!name) name = "期別 上位3位";
+      winners = categoryTop3(standings, "term");
+    } else if (category === "gender") {
+      if (!name) name = "男女別 上位3位";
+      winners = categoryTop3(standings, "gender");
+    } else {
+      if (!name) name = "総合 上位3位";
+      winners = standings
+        .filter((s) => s.eligible && s.rank != null && s.rank <= 3)
+        .map((s) => ({ participantId: s.participantId, note: `${s.rank}位` }));
+    }
   } else if (kind === "hio") {
     if (!name) name = "ホールインワン賞";
     const standings = await computeStandings(id);
