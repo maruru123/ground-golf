@@ -284,19 +284,19 @@ export default function SettingsForm({
               <label className="block text-xs text-slate-500 mb-1">
                 1ラウンドのホール数
               </label>
-              <input
-                type="number"
-                min={1}
-                max={18}
+              <select
                 value={t.holesPerRound}
                 onChange={(e) =>
-                  setT({
-                    ...t,
-                    holesPerRound: Math.max(1, toInt(e.target.value, 18)),
-                  })
+                  setT({ ...t, holesPerRound: Number(e.target.value) })
                 }
                 className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-              />
+              >
+                {Array.from({ length: 18 }, (_, i) => i + 1).map((h) => (
+                  <option key={h} value={h}>
+                    {h}ホール
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <p className="text-xs text-slate-400 mt-1">
