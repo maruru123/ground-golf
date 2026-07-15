@@ -38,7 +38,8 @@ export async function withDbRetry<T>(
     } catch (err) {
       lastErr = err;
       if (!isRetryable(err) || attempt === maxAttempts) throw err;
-      await new Promise((r) => setTimeout(r, attempt * 300));
+      // Neonのコールドスタート復帰は1秒未満のことが多いため、1回目から0.6秒待つ
+      await new Promise((r) => setTimeout(r, 600));
     }
   }
   throw lastErr;
