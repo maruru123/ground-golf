@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   playOrder,
@@ -53,6 +53,8 @@ export default function EntryPage() {
   const [status, setStatus] = useState("active");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  // 同じ人・同じホールへの保存を直列実行するためのキュー（連打時の書き込み順序を保証）
+  const saveQueueRef = useRef<Map<string, Promise<void>>>(new Map());
 
   // sessionStorage から復元（SSRでは storage 不可のためマウント時に一度だけ反映）
   useEffect(() => {
@@ -146,15 +148,7 @@ export default function EntryPage() {
     return summarizeScores(map, rule, holeCount);
   }
 
-  async function setStroke(memberId: string, hole: number, next: number | null) {
-    // 楽観的更新
-    setMembers((ms) =>
-      ms.map((m) =>
-        m.id === memberId
-          ? { ...m, scores: { ...m.scores, [hole]: next } }
-          : m
-      )
-    );
+  async function saveScore(memberId: string, hole: number, next: number | null) {
     try {
       const res = await fetch(`/api/participants/${memberId}/scores`, {
         method: "PUT",
@@ -170,6 +164,23 @@ export default function EntryPage() {
     } catch {
       setErr("通信エラー：保存できませんでした");
     }
+  }
+
+  function setStroke(memberId: string, hole: number, next: number | null) {
+    // 楽観的更新（画面表示はタップ直後に反映）
+    setMembers((ms) =>
+      ms.map((m) =>
+        m.id === memberId
+          ? { ...m, scores: { ...m.scores, [hole]: next } }
+          : m
+      )
+    );
+    // 同じ人・同じホールへの保存は前のリクエストの完了を待ってから送る
+    // （連打時にサーバーへの到達順が入れ替わり、古い打数が最終的に残るのを防ぐ）
+    const key = `${memberId}:${hole}`;
+    const prev = saveQueueRef.current.get(key) ?? Promise.resolve();
+    const queued = prev.then(() => saveScore(memberId, hole, next));
+    saveQueueRef.current.set(key, queued);
   }
 
   // ---------- 画面 ----------
