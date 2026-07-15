@@ -154,14 +154,24 @@ export async function POST(
   // 既存参加者数と、更新対象IDの整合チェック
   const existing = await prisma.participant.findMany({
     where: { tournamentId },
-    select: { id: true },
+    select: { id: true, name: true },
   });
   const existingIds = new Set(existing.map((p) => p.id));
+  const existingNames = new Set(existing.map((p) => p.name));
   const invalidIdRows = rows.filter((r) => r.id && !existingIds.has(r.id));
   invalidIdRows.forEach((r) =>
     errors.push({ row: r.rowNo, message: `参加者IDが存在しません: ${r.id}` })
   );
   const createRows = rows.filter((r) => !r.id);
+
+  // 新規作成される行の名前が、既にこの大会に登録済みの名前と一致する場合は
+  // 「同じ人をID無しで再取込 → 重複登録」の事故を防ぐため警告する（エラーにはせず取込は継続）
+  const dupNames = Array.from(
+    new Set(createRows.filter((r) => existingNames.has(r.name)).map((r) => r.name))
+  );
+  const warnings = dupNames.map(
+    (name) => `「${name}」は既に登録されている名前です（重複登録の可能性があります）`
+  );
 
   if (existing.length + createRows.length > maxParticipants) {
     errors.push({
@@ -260,7 +270,7 @@ export async function POST(
       return { created, updated };
     });
 
-    return NextResponse.json({ ok: true, ...result });
+    return NextResponse.json({ ok: true, ...result, warnings });
   } catch (e) {
     if (e instanceof ImportError) {
       return NextResponse.json(

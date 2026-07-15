@@ -102,6 +102,8 @@ model Award {
   createdAt    DateTime @default(now())
 
   winners AwardWinner[]
+
+  @@index([tournamentId])
 }
 
 /// 受賞者（賞 × 参加者）

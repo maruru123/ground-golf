@@ -101,9 +101,20 @@ export default function ParticipantsManager({
   async function del(id: string) {
     if (!confirm("この参加者を削除しますか？")) return;
     setBusy(true);
-    const res = await fetch(`/api/participants/${id}`, { method: "DELETE" });
-    setBusy(false);
-    if (res.ok) router.refresh();
+    setMsg("");
+    try {
+      const res = await fetch(`/api/participants/${id}`, { method: "DELETE" });
+      setBusy(false);
+      if (res.ok) {
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => null);
+        setMsg(data?.error ?? "削除に失敗しました");
+      }
+    } catch {
+      setBusy(false);
+      setMsg("通信エラーが発生しました");
+    }
   }
 
   async function onImport(file: File) {
