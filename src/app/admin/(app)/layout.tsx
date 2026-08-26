@@ -16,7 +16,7 @@ export default async function AdminAppLayout({
       <header className="bg-brand-600 text-white shadow no-print">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/admin" className="font-bold text-lg">
-            グラウンドゴルフ管理
+            グラウンドゴルフ管理システム
           </Link>
           <LogoutButton />
         </div>
