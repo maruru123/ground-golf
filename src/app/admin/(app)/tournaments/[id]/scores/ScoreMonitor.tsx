@@ -1,8 +1,31 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { summarizeScores, type ScoreRule } from "@/lib/scoring";
+import { summarizeScores, playOrder, type ScoreRule } from "@/lib/scoring";
 import { onlyDigits } from "@/lib/input";
+import { roundLabel } from "@/lib/labels";
+
+/** 組の回り順にそった列。ラウンドが切り替わる位置で区切る。 */
+function columnsFor(
+  startHole: number,
+  holeCount: number,
+  holesPerRound: number
+) {
+  const cols = playOrder(startHole, holeCount).map((holeNo) => ({
+    holeNo,
+    roundIdx: Math.floor((holeNo - 1) / holesPerRound),
+    inRound: ((holeNo - 1) % holesPerRound) + 1,
+  }));
+  // 連続する同じラウンドをまとめて見出しの列数にする
+  const segments: { roundIdx: number; span: number; startIdx: number }[] = [];
+  cols.forEach((c, i) => {
+    const last = segments[segments.length - 1];
+    if (last && last.roundIdx === c.roundIdx) last.span++;
+    else segments.push({ roundIdx: c.roundIdx, span: 1, startIdx: i });
+  });
+  const boundaries = new Set(segments.slice(1).map((s) => s.startIdx));
+  return { cols, segments, boundaries };
+}
 
 interface Member {
   id: string;
@@ -43,10 +66,6 @@ export default function ScoreMonitor({
   const HOLES = Array.from({ length: holeCount }, (_, i) => i + 1);
   const roundCount = Math.max(1, Math.ceil(holeCount / holesPerRound));
   const isMultiRound = roundCount > 1;
-  // ラウンドごとの列数（例: 2R×8Hなら [8, 8]）
-  const roundSpans = Array.from({ length: roundCount }, (_, r) =>
-    Math.min(holesPerRound, holeCount - r * holesPerRound)
-  );
 
   /** 入力欄の表示と保持データを、実際に保存される値に揃える。 */
   function apply(
@@ -245,13 +264,23 @@ export default function ScoreMonitor({
           </ul>
         </div>
       )}
-      {data.map((g) => (
+      {data.map((g) => {
+        const { cols, segments, boundaries } = columnsFor(
+          g.startHole,
+          holeCount,
+          holesPerRound
+        );
+        const first = cols[0];
+        return (
         <div key={`${version}-${g.groupNo}`} className="space-y-2">
           <h3 className="font-bold text-slate-700">
             第{g.groupNo}組
             {g.name ? `（${g.name}）` : ""}
             <span className="text-sm font-normal text-slate-400 ml-2">
-              開始{g.startHole}番
+              開始
+              {isMultiRound && first
+                ? `${roundLabel(first.roundIdx, roundCount)} ${first.inRound}番`
+                : `${g.startHole}番`}
             </span>
           </h3>
           <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">
@@ -260,15 +289,15 @@ export default function ScoreMonitor({
                 {isMultiRound && (
                   <tr className="bg-slate-100 text-slate-500">
                     <th className="sticky left-0 bg-slate-100" colSpan={2} />
-                    {roundSpans.map((span, r) => (
+                    {segments.map((s, i) => (
                       <th
-                        key={r}
-                        colSpan={span}
+                        key={i}
+                        colSpan={s.span}
                         className={`px-1 py-0.5 font-semibold text-slate-600 ${
-                          r > 0 ? "border-l-2 border-slate-300" : ""
+                          i > 0 ? "border-l-2 border-slate-300" : ""
                         }`}
                       >
-                        {r + 1}R
+                        {roundLabel(s.roundIdx, roundCount)}
                       </th>
                     ))}
                     <th />
@@ -279,23 +308,16 @@ export default function ScoreMonitor({
                     氏名
                   </th>
                   <th className="px-2 py-1 w-10 bg-slate-50">期</th>
-                  {HOLES.map((h) => {
-                    const isRoundStart =
-                      isMultiRound && (h - 1) % holesPerRound === 0 && h !== 1;
-                    const label = isMultiRound
-                      ? ((h - 1) % holesPerRound) + 1
-                      : h;
-                    return (
-                      <th
-                        key={h}
-                        className={`px-1 py-1 w-8 ${
-                          isRoundStart ? "border-l-2 border-slate-300" : ""
-                        }`}
-                      >
-                        {label}
-                      </th>
-                    );
-                  })}
+                  {cols.map((c, i) => (
+                    <th
+                      key={c.holeNo}
+                      className={`px-1 py-1 w-8 ${
+                        boundaries.has(i) ? "border-l-2 border-slate-300" : ""
+                      }`}
+                    >
+                      {isMultiRound ? c.inRound : c.holeNo}
+                    </th>
+                  ))}
                   <th className="px-2 py-1 w-12">計</th>
                 </tr>
               </thead>
@@ -320,32 +342,31 @@ export default function ScoreMonitor({
                       <td className="px-2 py-1 text-center text-slate-500">
                         {m.term ?? "-"}
                       </td>
-                      {HOLES.map((h) => {
-                        const isRoundStart =
-                          isMultiRound &&
-                          (h - 1) % holesPerRound === 0 &&
-                          h !== 1;
-                        return (
-                          <td
-                            key={h}
-                            className={`px-0.5 py-1 ${
-                              isRoundStart ? "border-l-2 border-slate-300" : ""
-                            }`}
-                          >
-                            <input
-                              defaultValue={m.scores[h] ?? ""}
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              maxLength={2}
-                              onChange={(e) => onlyDigits(e.target)}
-                              onBlur={(e) =>
-                                save(m.id, h, e.target, m.scores[h] ?? null)
-                              }
-                              className="w-7 text-center rounded border border-slate-200 py-1"
-                            />
-                          </td>
-                        );
-                      })}
+                      {cols.map((c, i) => (
+                        <td
+                          key={c.holeNo}
+                          className={`px-0.5 py-1 ${
+                            boundaries.has(i) ? "border-l-2 border-slate-300" : ""
+                          }`}
+                        >
+                          <input
+                            defaultValue={m.scores[c.holeNo] ?? ""}
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={2}
+                            onChange={(e) => onlyDigits(e.target)}
+                            onBlur={(e) =>
+                              save(
+                                m.id,
+                                c.holeNo,
+                                e.target,
+                                m.scores[c.holeNo] ?? null
+                              )
+                            }
+                            className="w-7 text-center rounded border border-slate-200 py-1"
+                          />
+                        </td>
+                      ))}
                       <td className="px-2 py-1 text-right font-semibold">
                         {sum.enteredHoles > 0 ? sum.total : "-"}
                       </td>
@@ -356,7 +377,8 @@ export default function ScoreMonitor({
             </table>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

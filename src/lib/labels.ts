@@ -25,6 +25,16 @@ export const GENDER_LABELS: Record<string, string> = {
   other: "その他",
 };
 
+/**
+ * ラウンドの表示名。ラウンドはそれぞれ別コースを指すため、
+ * 2ラウンド構成のときは 1R=IN / 2R=OUT を併記する。
+ */
+export function roundLabel(roundIndex: number, roundCount: number): string {
+  const base = `${roundIndex + 1}R`;
+  if (roundCount !== 2) return base;
+  return roundIndex === 0 ? `${base}(IN)` : `${base}(OUT)`;
+}
+
 export function genderToInternal(v: string): string | null {
   const s = v.trim();
   if (s === "男" || s.toLowerCase() === "male") return "male";

@@ -10,6 +10,7 @@ import {
   DEFAULT_RULE,
   type ScoreRule,
 } from "@/lib/scoring";
+import { roundLabel } from "@/lib/labels";
 
 interface GroupInfo {
   id: string;
@@ -301,7 +302,7 @@ export default function EntryPage() {
           <div className="text-2xl font-bold">
             {isMultiRound ? (
               <>
-                {currentRound}R {holeInRound}番
+                {roundLabel(currentRound - 1, roundCount)} {holeInRound}番
                 <span className="text-sm font-normal ml-2 text-white/70">
                   (通し{hole})
                 </span>
