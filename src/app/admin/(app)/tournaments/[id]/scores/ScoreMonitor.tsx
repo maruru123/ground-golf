@@ -36,13 +36,14 @@ export default function ScoreMonitor({
     Math.min(holesPerRound, holeCount - r * holesPerRound)
   );
 
-  async function save(memberId: string, hole: number, raw: string) {
-    let strokes: number | null = null;
-    if (raw.trim() !== "") {
-      const n = Number(raw);
-      if (!Number.isInteger(n) || n < 1 || n > 20) return;
-      strokes = n;
-    }
+  /** 入力欄の表示と保持データを、実際に保存される値に揃える。 */
+  function apply(
+    memberId: string,
+    hole: number,
+    strokes: number | null,
+    el: HTMLInputElement
+  ) {
+    el.value = strokes == null ? "" : String(strokes);
     setData((gs) =>
       gs.map((g) => ({
         ...g,
@@ -53,16 +54,41 @@ export default function ScoreMonitor({
         ),
       }))
     );
+  }
+
+  async function save(
+    memberId: string,
+    hole: number,
+    el: HTMLInputElement,
+    prev: number | null
+  ) {
+    const raw = el.value.trim();
+    let strokes: number | null = null;
+    if (raw !== "") {
+      const n = Number(raw);
+      if (!Number.isInteger(n) || n < 1) {
+        el.value = prev == null ? "" : String(prev); // 数値でない/0以下は元に戻す
+        return;
+      }
+      strokes = Math.min(n, rule.maxStrokes); // 上限打数を超えたら上限に補正
+    }
+    apply(memberId, hole, strokes, el);
     try {
       const res = await fetch(`/api/participants/${memberId}/scores`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ holeNo: hole, strokes }),
       });
+      const d = await res.json().catch(() => null);
       if (!res.ok) {
-        const d = await res.json();
-        setErr(d.error ?? "保存に失敗しました");
-      } else setErr("");
+        setErr(d?.error ?? "保存に失敗しました");
+        return;
+      }
+      setErr("");
+      // サーバ側でも上限打数に丸めるため、保存値がずれていたら表示を合わせ直す
+      if (d && d.strokes !== undefined && d.strokes !== strokes) {
+        apply(memberId, hole, d.strokes, el);
+      }
     } catch {
       setErr("通信エラー");
     }
@@ -86,6 +112,7 @@ export default function ScoreMonitor({
     <div className="space-y-6">
       <p className="text-sm text-slate-500">
         管理者は状態に関わらず修正できます。数値は打数（空欄で未入力）。
+        上限打数({rule.maxStrokes}打)を超える値は{rule.maxStrokes}に補正されます。
       </p>
       {err && (
         <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
@@ -178,7 +205,9 @@ export default function ScoreMonitor({
                             <input
                               defaultValue={m.scores[h] ?? ""}
                               inputMode="numeric"
-                              onBlur={(e) => save(m.id, h, e.target.value)}
+                              onBlur={(e) =>
+                                save(m.id, h, e.target, m.scores[h] ?? null)
+                              }
                               className="w-7 text-center rounded border border-slate-200 py-1"
                             />
                           </td>

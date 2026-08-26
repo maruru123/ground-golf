@@ -31,7 +31,12 @@ export async function PUT(
       where: { id },
       include: {
         tournament: {
-          select: { status: true, scorePasscode: true, holeCount: true },
+          select: {
+            status: true,
+            scorePasscode: true,
+            holeCount: true,
+            maxStrokes: true,
+          },
         },
         group: { select: { pin: true } },
       },
@@ -63,7 +68,13 @@ export async function PUT(
     }
   }
 
-  if (strokes == null) {
+  // 上限打数を超える打数は上限打数に丸めて保存する（保存値と集計値を一致させる）
+  const saved =
+    strokes == null
+      ? null
+      : Math.min(strokes, participant.tournament.maxStrokes);
+
+  if (saved == null) {
     await withDbRetry(() =>
       prisma.score.deleteMany({
         where: { participantId: id, holeNo },
@@ -73,11 +84,12 @@ export async function PUT(
     await withDbRetry(() =>
       prisma.score.upsert({
         where: { participantId_holeNo: { participantId: id, holeNo } },
-        create: { participantId: id, holeNo, strokes },
-        update: { strokes },
+        create: { participantId: id, holeNo, strokes: saved },
+        update: { strokes: saved },
       })
     );
   }
 
-  return NextResponse.json({ ok: true });
+  // 呼び出し側が表示を実際の保存値に揃えられるよう返す
+  return NextResponse.json({ ok: true, strokes: saved });
 }
