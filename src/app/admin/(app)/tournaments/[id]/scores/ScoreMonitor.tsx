@@ -259,7 +259,7 @@ export default function ScoreMonitor({
               <thead>
                 {isMultiRound && (
                   <tr className="bg-slate-100 text-slate-500">
-                    <th className="sticky left-0 bg-slate-100" />
+                    <th className="sticky left-0 bg-slate-100" colSpan={2} />
                     {roundSpans.map((span, r) => (
                       <th
                         key={r}
@@ -278,6 +278,7 @@ export default function ScoreMonitor({
                   <th className="px-2 py-1 sticky left-0 bg-slate-50 text-left min-w-[6rem]">
                     氏名
                   </th>
+                  <th className="px-2 py-1 w-10 bg-slate-50">期</th>
                   {HOLES.map((h) => {
                     const isRoundStart =
                       isMultiRound && (h - 1) % holesPerRound === 0 && h !== 1;
@@ -315,6 +316,9 @@ export default function ScoreMonitor({
                     <tr key={m.id} className="border-t border-slate-100">
                       <td className="px-2 py-1 sticky left-0 bg-white font-medium whitespace-nowrap">
                         {m.name}
+                      </td>
+                      <td className="px-2 py-1 text-center text-slate-500">
+                        {m.term ?? "-"}
                       </td>
                       {HOLES.map((h) => {
                         const isRoundStart =
