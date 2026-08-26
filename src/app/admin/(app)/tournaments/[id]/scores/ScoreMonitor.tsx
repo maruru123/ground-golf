@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { summarizeScores, type ScoreRule } from "@/lib/scoring";
+import { onlyDigits } from "@/lib/input";
 
 interface Member {
   id: string;
@@ -205,6 +206,9 @@ export default function ScoreMonitor({
                             <input
                               defaultValue={m.scores[h] ?? ""}
                               inputMode="numeric"
+                              pattern="[0-9]*"
+                              maxLength={2}
+                              onChange={(e) => onlyDigits(e.target)}
                               onBlur={(e) =>
                                 save(m.id, h, e.target, m.scores[h] ?? null)
                               }

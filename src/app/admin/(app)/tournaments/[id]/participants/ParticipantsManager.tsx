@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GENDER_LABELS, PARTICIPANT_STATUS_LABELS } from "@/lib/labels";
+import { digitsOnly, onlyDigits } from "@/lib/input";
 
 interface P {
   id: string;
@@ -225,7 +226,7 @@ export default function ParticipantsManager({
             <label className="block text-xs text-slate-500 mb-1">期</label>
             <input
               value={term}
-              onChange={(e) => setTerm(e.target.value)}
+              onChange={(e) => setTerm(digitsOnly(e.target.value))}
               inputMode="numeric"
               className="tap w-20 rounded-lg border border-slate-300 px-3 py-2"
             />
@@ -234,7 +235,7 @@ export default function ParticipantsManager({
             <label className="block text-xs text-slate-500 mb-1">年齢</label>
             <input
               value={age}
-              onChange={(e) => setAge(e.target.value)}
+              onChange={(e) => setAge(digitsOnly(e.target.value))}
               inputMode="numeric"
               className="tap w-20 rounded-lg border border-slate-300 px-3 py-2"
             />
@@ -313,14 +314,13 @@ export default function ParticipantsManager({
                         <input
                           defaultValue={p.term ?? ""}
                           inputMode="numeric"
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const v = onlyDigits(e.target);
                             setEdit((s) => ({
                               ...s,
-                              term: e.target.value
-                                ? Number(e.target.value)
-                                : null,
-                            }))
-                          }
+                              term: v ? Number(v) : null,
+                            }));
+                          }}
                           className="w-14 rounded border border-slate-300 px-2 py-1"
                         />
                       </td>
@@ -328,14 +328,13 @@ export default function ParticipantsManager({
                         <input
                           defaultValue={p.age ?? ""}
                           inputMode="numeric"
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const v = onlyDigits(e.target);
                             setEdit((s) => ({
                               ...s,
-                              age: e.target.value
-                                ? Number(e.target.value)
-                                : null,
-                            }))
-                          }
+                              age: v ? Number(v) : null,
+                            }));
+                          }}
                           className="w-14 rounded border border-slate-300 px-2 py-1"
                         />
                       </td>
