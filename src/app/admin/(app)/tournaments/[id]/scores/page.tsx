@@ -39,17 +39,20 @@ export default async function ScoresPage({
     ps: {
       id: string;
       name: string;
+      term: number | null;
       scores: { holeNo: number; strokes: number | null }[];
     }[]
   ) =>
     ps.map((p) => ({
       id: p.id,
       name: p.name,
+      term: p.term,
       scores: Object.fromEntries(p.scores.map((s) => [s.holeNo, s.strokes])),
     }));
 
   return (
     <ScoreMonitor
+      tournamentId={id}
       rule={rule}
       holeCount={holeCount}
       holesPerRound={holesPerRound}

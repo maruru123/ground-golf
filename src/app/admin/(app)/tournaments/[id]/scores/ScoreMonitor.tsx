@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { summarizeScores, type ScoreRule } from "@/lib/scoring";
 import { onlyDigits } from "@/lib/input";
 
 interface Member {
   id: string;
   name: string;
+  term: number | null;
   scores: Record<string, number | null>;
 }
 interface Group {
@@ -17,11 +18,13 @@ interface Group {
 }
 
 export default function ScoreMonitor({
+  tournamentId,
   groups,
   rule,
   holeCount,
   holesPerRound,
 }: {
+  tournamentId: string;
   groups: Group[];
   rule: ScoreRule;
   holeCount: number;
@@ -29,6 +32,14 @@ export default function ScoreMonitor({
 }) {
   const [data, setData] = useState<Group[]>(groups);
   const [err, setErr] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [importErrors, setImportErrors] = useState<
+    { row: number; message: string }[]
+  >([]);
+  // CSV取込後に入力欄(非制御)を作り直して、新しい打数を表示させるための版数
+  const [version, setVersion] = useState(0);
   const HOLES = Array.from({ length: holeCount }, (_, i) => i + 1);
   const roundCount = Math.max(1, Math.ceil(holeCount / holesPerRound));
   const isMultiRound = roundCount > 1;
@@ -95,6 +106,79 @@ export default function ScoreMonitor({
     }
   }
 
+  async function onImport(file: File) {
+    setBusy(true);
+    setMsg("");
+    setErr("");
+    setImportErrors([]);
+    const csv = await file.text();
+    const res = await fetch(`/api/tournaments/${tournamentId}/scores/import`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ csv }),
+    });
+    const d = await res.json().catch(() => null);
+    setBusy(false);
+    if (fileRef.current) fileRef.current.value = "";
+    if (!res.ok) {
+      setMsg(d?.error ?? "取込に失敗しました");
+      setImportErrors(d?.errors ?? []);
+      return;
+    }
+    // 取り込んだ打数を画面に反映する（strokes が null のホールは未入力に戻る）
+    const applied: {
+      participantId: string;
+      holeNo: number;
+      strokes: number | null;
+    }[] = d.applied ?? [];
+    setData((gs) =>
+      gs.map((g) => ({
+        ...g,
+        members: g.members.map((m) => {
+          const mine = applied.filter((a) => a.participantId === m.id);
+          if (mine.length === 0) return m;
+          const scores = { ...m.scores };
+          for (const a of mine) scores[a.holeNo] = a.strokes;
+          return { ...m, scores };
+        }),
+      }))
+    );
+    setVersion((v) => v + 1);
+    setMsg(
+      `取込完了: ${d.people}名 / ${d.cells}ホール` +
+        (d.cleared ? ` / 未入力に戻した ${d.cleared}ホール` : "") +
+        (d.warnings?.length ? `（補正 ${d.warnings.length}件）` : "")
+    );
+    setImportErrors(
+      (d.warnings ?? []).map((w: string) => ({ row: 0, message: w }))
+    );
+  }
+
+  /**
+   * 現在のスコアをCSVで書き出す。取込では空欄が未入力扱いになるため、
+   * これを編集して取り込めば意図しない消去が起きない。
+   */
+  function downloadCsv() {
+    const bom = "﻿";
+    const header = ["名前", "期", ...HOLES.map(String)].join(",");
+    const rows = data
+      .flatMap((g) => g.members)
+      .map((m) =>
+        [m.name, m.term ?? "", ...HOLES.map((h) => m.scores[h] ?? "")].join(",")
+      );
+    const csv =
+      [header, ...(rows.length > 0 ? rows : [",".repeat(HOLES.length + 1)])].join(
+        "\n"
+      ) + "\n";
+    const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "scores.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function total(m: Member) {
     const map = new Map<number, number | null>();
     for (const [k, v] of Object.entries(m.scores)) map.set(Number(k), v);
@@ -120,8 +204,49 @@ export default function ScoreMonitor({
           {err}
         </p>
       )}
+
+      {/* CSV取込 */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-sm font-medium text-slate-600">CSV取込:</span>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv,text/csv"
+            disabled={busy}
+            onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])}
+            className="text-sm"
+          />
+          <button
+            onClick={downloadCsv}
+            className="tap text-sm rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-50"
+          >
+            現在のスコアを書き出し
+          </button>
+        </div>
+        <p className="text-xs text-slate-400">
+          列は「名前」「期」＋ホール番号(1〜{holeCount})。名前と期で参加者を探して打数を設定します。
+          <b className="text-slate-500">空欄のホールは未入力に戻る</b>
+          ため、「現在のスコアを書き出し」で出したCSVを編集して取り込むのが安全です。
+        </p>
+      </div>
+      {msg && (
+        <p className="text-sm bg-slate-50 rounded-lg px-3 py-2">{msg}</p>
+      )}
+      {importErrors.length > 0 && (
+        <div className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 max-h-40 overflow-y-auto">
+          <ul className="list-disc pl-5 space-y-0.5">
+            {importErrors.map((e, i) => (
+              <li key={i}>
+                {e.row > 0 ? `${e.row}行目: ` : ""}
+                {e.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {data.map((g) => (
-        <div key={g.groupNo} className="space-y-2">
+        <div key={`${version}-${g.groupNo}`} className="space-y-2">
           <h3 className="font-bold text-slate-700">
             第{g.groupNo}組
             {g.name ? `（${g.name}）` : ""}
