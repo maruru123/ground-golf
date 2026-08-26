@@ -1,13 +1,16 @@
 // スコアリング・順位計算ロジック（設計書 02_design.md 第5章）
 // 独自ルール（大会ごとに設定可能。既定は hioPoints=-3, maxStrokes=5）:
-//   - 1打(ホールインワン) => hioPoints 点
+//   - 1打(ホールインワン) => 1点（打数どおり。減算は下記のとおり合計に対して行う）
 //   - 2〜maxStrokes 打 => その打数
 //   - maxStrokes を超える打数 => maxStrokes 点(上限)
 //   - 未入力 => null（暫定合計では0扱い、正式対象判定では未完了）
+// 合計 = 各ホールの点の総和 + ホールインワン回数 × hioPoints
+//   ホールインワンはホール単体の点を置き換えるのではなく、合計に対して
+//   1回につき hioPoints を加算する（グラウンドゴルフ本式の「合計から3打減」に対応）。
 
 /** スコア換算ルール（大会ごとに可変） */
 export interface ScoreRule {
-  hioPoints: number; // ホールインワン(1打)の換算点
+  hioPoints: number; // ホールインワン1回につき合計に加算する点（既定 -3）
   maxStrokes: number; // 上限打数（これを超える打数はこの値に丸める）
 }
 
@@ -20,13 +23,17 @@ export function isHoleInOne(strokes: number | null | undefined): boolean {
   return strokes === 1;
 }
 
-/** 1ホールの実打数を換算スコア（点）に変換。未入力は null。 */
+/**
+ * 1ホールの実打数を換算スコア（点）に変換。未入力は null。
+ * ホールインワン(1打)もそのまま1点として扱う。hioPoints は合計側で加算するため
+ * ここでは考慮しない（summarizeScores を参照）。
+ */
 export function holePoints(
   strokes: number | null | undefined,
   rule: ScoreRule = DEFAULT_RULE
 ): number | null {
   if (strokes == null) return null;
-  if (strokes <= 1) return rule.hioPoints; // ホールインワン
+  if (strokes <= 1) return 1; // ホールインワン（打数どおり1点）
   return Math.min(strokes, rule.maxStrokes); // 2打以上は上限で丸め
 }
 
@@ -37,7 +44,10 @@ export interface ScoreSummary {
   hioCount: number; // ホールインワン回数
 }
 
-/** ホール番号 -> 実打数 のマップから合計・HIO数を算出。 */
+/**
+ * ホール番号 -> 実打数 のマップから合計・HIO数を算出。
+ * 合計は各ホールの点を足し込んだうえで、ホールインワン回数 × hioPoints を加算する。
+ */
 export function summarizeScores(
   strokesByHole: Map<number, number | null | undefined>,
   rule: ScoreRule = DEFAULT_RULE,
@@ -55,6 +65,9 @@ export function summarizeScores(
     total += pts;
     if (isHoleInOne(strokes)) hio++;
   }
+
+  // ホールインワンは合計に対して1回につき hioPoints を加算する
+  total += hio * rule.hioPoints;
 
   return {
     total,

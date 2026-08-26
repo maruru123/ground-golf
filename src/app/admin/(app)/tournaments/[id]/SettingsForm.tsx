@@ -195,7 +195,7 @@ export default function SettingsForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">
-              ホールインワンの点数
+              ホールインワンの加算点
             </label>
             <input
               type="number"
@@ -206,7 +206,8 @@ export default function SettingsForm({
               className="tap w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
             <p className="text-xs text-slate-400 mt-1">
-              1打（ホールインワン）の換算点。既定は -3。
+              ホールインワン1回につき合計に加算する点。ホール自体は1打として数え、
+              合計から別途この点を加算します。既定は -3。
             </p>
           </div>
           <div>

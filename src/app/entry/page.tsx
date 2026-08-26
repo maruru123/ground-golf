@@ -362,7 +362,8 @@ export default function EntryPage() {
                   <div className="text-xs h-4">
                     {cur != null && isHoleInOne(cur) && (
                       <span className="text-red-600 font-bold">
-                        ホールインワン ({rule.hioPoints})
+                        ホールインワン 合計
+                        {rule.hioPoints > 0 ? `+${rule.hioPoints}` : rule.hioPoints}
                       </span>
                     )}
                     {cur != null && !isHoleInOne(cur) && cur >= rule.maxStrokes && (
