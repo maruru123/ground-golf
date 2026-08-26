@@ -4,31 +4,33 @@ import { prisma } from "@/lib/prisma";
 import { guardAdmin } from "@/lib/api";
 import {
   maxGroupsFor,
-  SEQUENTIAL_MAX_GROUPS,
+  limitedByHoles,
+  MAX_GROUPS,
   type StartMethod,
 } from "@/lib/tournamentLimits";
 
 const DEFAULT_PER_GROUP = 8; // 大会未設定時のフォールバック
-const DEFAULT_HOLES_PER_ROUND = 18;
+const DEFAULT_HOLE_COUNT = 18;
 
 /**
  * 大会のペアリング関連設定を取得（未設定時は既定にフォールバック）。
- * ショットガンの開始ホール・最大組数は「1ラウンドのホール数」＝物理的なホール数で決まる
- * （総ホール数=ラウンド数×1ラウンドのホール数 は関係ない。同じコースを周回するだけのため）。
+ * ショットガンの開始ホール・最大組数は「総ホール数」で決まる。
+ * ラウンドはそれぞれ別コース（例: 2ラウンド = OUT/IN）を指すため、
+ * 通しホール番号 1〜holeCount がそのまま同時スタート地点になる。
  */
 async function getPairingConfig(tournamentId: string): Promise<{
   maxPerGroup: number;
   startMethod: StartMethod;
-  holesPerRound: number;
+  holeCount: number;
 }> {
   const t = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { maxPerGroup: true, startMethod: true, holesPerRound: true },
+    select: { maxPerGroup: true, startMethod: true, holeCount: true },
   });
   return {
     maxPerGroup: t?.maxPerGroup ?? DEFAULT_PER_GROUP,
     startMethod: (t?.startMethod as StartMethod) ?? "shotgun",
-    holesPerRound: t?.holesPerRound ?? DEFAULT_HOLES_PER_ROUND,
+    holeCount: t?.holeCount ?? DEFAULT_HOLE_COUNT,
   };
 }
 
@@ -42,7 +44,7 @@ const saveSchema = z.object({
         pin: z.string().max(20).nullable().optional(),
       })
     )
-    .max(SEQUENTIAL_MAX_GROUPS, `組は最大${SEQUENTIAL_MAX_GROUPS}組までです`),
+    .max(MAX_GROUPS, `組は最大${MAX_GROUPS}組までです`),
   assignments: z.record(z.string(), z.number().int().nullable()),
 });
 
@@ -84,14 +86,18 @@ async function applyPairing(
   input: SaveInput,
   maxPerGroup: number,
   startMethod: StartMethod,
-  holesPerRound: number
+  holeCount: number
 ): Promise<{ ok: true } | { error: string; status: number }> {
-  const maxGroups = maxGroupsFor(startMethod, holesPerRound);
+  const maxGroups = maxGroupsFor(startMethod, holeCount);
   if (input.groups.length > maxGroups) {
     return {
       error:
         startMethod === "shotgun"
-          ? `ショットガンでは組は最大${maxGroups}組までです（1ラウンドのホール数=${holesPerRound}。現在${input.groups.length}組）。1組あたりの人数を増やすか、順次スタートに変更してください`
+          ? `ショットガンでは組は最大${maxGroups}組までです（${
+              limitedByHoles(startMethod, holeCount)
+                ? `総ホール数=${holeCount}。`
+                : ""
+            }現在${input.groups.length}組）。1組あたりの人数を増やすか、順次スタートに変更してください`
           : `組は最大${maxGroups}組までです（現在${input.groups.length}組）`,
       status: 400,
     };
@@ -103,9 +109,9 @@ async function applyPairing(
   // ショットガンは各組で開始ホールが異なる必要がある（順次は全組1番からなので不要）
   if (startMethod === "shotgun") {
     const startHoles = input.groups.map((g) => g.startHole);
-    if (startHoles.some((h) => h > holesPerRound)) {
+    if (startHoles.some((h) => h > holeCount)) {
       return {
-        error: `開始ホールは1ラウンドのホール数（${holesPerRound}）以内で指定してください`,
+        error: `開始ホールは総ホール数（${holeCount}）以内で指定してください`,
         status: 400,
       };
     }
@@ -187,13 +193,13 @@ export async function PUT(
       { status: 400 }
     );
   }
-  const { maxPerGroup, startMethod, holesPerRound } = await getPairingConfig(id);
+  const { maxPerGroup, startMethod, holeCount } = await getPairingConfig(id);
   const result = await applyPairing(
     id,
     parsed.data,
     maxPerGroup,
     startMethod,
-    holesPerRound
+    holeCount
   );
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });
@@ -210,8 +216,8 @@ export async function POST(
   if (denied) return denied;
   const { id } = await ctx.params;
 
-  const { maxPerGroup, startMethod, holesPerRound } = await getPairingConfig(id);
-  const maxGroups = maxGroupsFor(startMethod, holesPerRound);
+  const { maxPerGroup, startMethod, holeCount } = await getPairingConfig(id);
+  const maxGroups = maxGroupsFor(startMethod, holeCount);
   const participants = await prisma.participant.findMany({
     where: { tournamentId: id },
     orderBy: [{ term: "asc" }, { name: "asc" }],
@@ -232,8 +238,8 @@ export async function POST(
   const groups = chunks.map((_, i) => ({
     groupNo: i + 1,
     name: null,
-    // ショットガンは各組バラバラのホール、順次は全組1番から
-    startHole: startMethod === "sequential" ? 1 : (i % holesPerRound) + 1,
+    // ショットガンは各組バラバラのホール（通し番号）、順次は全組1番から
+    startHole: startMethod === "sequential" ? 1 : (i % holeCount) + 1,
     pin: null,
   }));
   const assignments: Record<string, number | null> = {};
@@ -248,7 +254,7 @@ export async function POST(
     { groups, assignments },
     maxPerGroup,
     startMethod,
-    holesPerRound
+    holeCount
   );
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });

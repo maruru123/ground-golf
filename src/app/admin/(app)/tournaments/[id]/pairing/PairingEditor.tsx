@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { maxGroupsFor } from "@/lib/tournamentLimits";
+import { maxGroupsFor, limitedByHoles } from "@/lib/tournamentLimits";
 
 interface GroupMeta {
   groupNo: number;
@@ -20,19 +20,19 @@ export default function PairingEditor({
   tournamentId,
   maxPerGroup,
   startMethod,
-  holesPerRound,
+  holeCount,
   initialGroups,
   participants,
 }: {
   tournamentId: string;
   maxPerGroup: number;
   startMethod: string;
-  holesPerRound: number;
+  holeCount: number;
   initialGroups: GroupMeta[];
   participants: Part[];
 }) {
   const isSequential = startMethod === "sequential";
-  const maxGroups = maxGroupsFor(startMethod, holesPerRound);
+  const maxGroups = maxGroupsFor(startMethod, holeCount);
   const router = useRouter();
   const [groups, setGroups] = useState<GroupMeta[]>(initialGroups);
   const [assign, setAssign] = useState<Record<string, number | null>>(
@@ -67,9 +67,9 @@ export default function PairingEditor({
   function addGroup() {
     if (groups.length >= maxGroups) {
       setMsg(
-        isSequential
-          ? `組は最大${maxGroups}組までです`
-          : `組は最大${maxGroups}組までです（ショットガン方式：1ラウンド${holesPerRound}ホール）`
+        limitedByHoles(startMethod, holeCount)
+          ? `組は最大${maxGroups}組までです（ショットガン方式：全${holeCount}ホール）`
+          : `組は最大${maxGroups}組までです`
       );
       return;
     }
@@ -81,7 +81,7 @@ export default function PairingEditor({
       {
         groupNo: nextNo,
         name: "",
-        startHole: isSequential ? 1 : ((nextNo - 1) % holesPerRound) + 1,
+        startHole: isSequential ? 1 : ((nextNo - 1) % holeCount) + 1,
       },
     ]);
   }
@@ -245,7 +245,7 @@ export default function PairingEditor({
                       }
                       className="ml-1 rounded border border-slate-300 px-1 py-1"
                     >
-                      {Array.from({ length: holesPerRound }, (_, i) => i + 1).map(
+                      {Array.from({ length: holeCount }, (_, i) => i + 1).map(
                         (h) => (
                           <option key={h} value={h}>
                             {h}番

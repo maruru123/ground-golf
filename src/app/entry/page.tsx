@@ -127,7 +127,7 @@ export default function EntryPage() {
         setHoleCount(hc);
         setHolesPerRound(hpr);
         setRoundCount(rc);
-        setOrder(playOrder(data.group.startHole, hpr, rc));
+        setOrder(playOrder(data.group.startHole, hc));
         setHoleIdx(0);
         setStep("input");
         sessionStorage.setItem(

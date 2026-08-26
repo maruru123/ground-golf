@@ -79,26 +79,22 @@ export function summarizeScores(
 
 /**
  * ショットガン方式のプレー順（入力導線）。
- * 1ラウンド分は開始ホール（物理ホール）から始まり一巡する順序。
- * 複数ラウンドは「同じコースをもう一周」なので、開始ホール（物理位置）は毎ラウンド共通のまま、
- * holeNo だけラウンドごとに holesPerRound ずつ加算して連番にする。
- * 例: startHole=5, holesPerRound=8, roundCount=2
- *   => [5,6,7,8,1,2,3,4, 13,14,15,16,9,10,11,12]
- *      （1周目: 物理5→8→1→4 / 2周目: 同じ物理順で holeNo=9〜16）
+ * ラウンドはそれぞれ別コース（例: 2ラウンド = OUT/IN）を指し、
+ * 通しホール番号 1〜holeCount がコース上の全ホールに対応する。
+ * 例: 2ラウンド×8ホール なら OUT1〜8=通し1〜8番、IN1〜8=通し9〜16番。
+ * 各組は自分の開始ホールから通し番号順に全ホールを一巡する（holeCount の次は1に戻る）。
+ * 例: startHole=5, holeCount=16
+ *   => [5,6,7,8, 9,10,11,12,13,14,15,16, 1,2,3,4]
+ *      （OUT5→8 → IN1→8 → OUT1→4）
  */
 export function playOrder(
   startHole: number,
-  holesPerRound: number = DEFAULT_HOLE_COUNT,
-  roundCount: number = 1
+  holeCount: number = DEFAULT_HOLE_COUNT
 ): number[] {
-  const order: number[] = [];
-  for (let round = 0; round < roundCount; round++) {
-    for (let i = 0; i < holesPerRound; i++) {
-      const physicalHole = ((startHole - 1 + i) % holesPerRound) + 1;
-      order.push(round * holesPerRound + physicalHole);
-    }
-  }
-  return order;
+  return Array.from(
+    { length: holeCount },
+    (_, i) => ((startHole - 1 + i) % holeCount) + 1
+  );
 }
 
 export interface RankableParticipant {
