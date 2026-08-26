@@ -5,6 +5,7 @@ import { guardAdmin } from "@/lib/api";
 
 const updateSchema = z.object({
   name: z.string().trim().min(1).max(50).optional(),
+  kana: z.string().trim().max(50).nullable().optional(),
   term: z.number().int().min(0).max(999).nullable().optional(),
   age: z.number().int().min(0).max(150).nullable().optional(),
   gender: z.enum(["male", "female", "other"]).nullable().optional(),
@@ -31,6 +32,7 @@ export async function PUT(
   const d = parsed.data;
   const data: Record<string, unknown> = {};
   if (d.name !== undefined) data.name = d.name;
+  if (d.kana !== undefined) data.kana = d.kana || null; // 空欄は未設定に戻す
   if (d.term !== undefined) data.term = d.term;
   if (d.age !== undefined) data.age = d.age;
   if (d.gender !== undefined) data.gender = d.gender;

@@ -64,6 +64,7 @@ model Participant {
   groupId      String?
   group        Group?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
   name         String // 氏名(姓名1項目)
+  kana         String? // 氏名カナ(任意)
   term         Int? // 期(卒業回次)
   age          Int? // 年齢（年代別表彰用・大会時点）
   gender       String? // male / female / other

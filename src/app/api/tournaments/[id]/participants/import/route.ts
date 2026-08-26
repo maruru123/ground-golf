@@ -18,6 +18,7 @@ class ImportError extends Error {
 interface RowInput {
   参加者ID?: string;
   名前?: string;
+  カナ?: string;
   期?: string;
   年齢?: string;
   性別?: string;
@@ -30,6 +31,7 @@ interface BuiltRow {
   rowNo: number;
   id: string | null;
   name: string;
+  kana: string | null;
   term: number | null;
   age: number | null;
   gender: string | null;
@@ -131,10 +133,13 @@ export async function POST(
       groupNo = n;
     }
     const note = (raw.備考 ?? "").trim() || null;
+    // カナは任意入力。空欄は未設定として扱う（文字種の検証は行わない）
+    const kana = (raw.カナ ?? "").trim() || null;
     rows.push({
       rowNo,
       id: (raw.参加者ID ?? "").trim() || null,
       name,
+      kana,
       term,
       age,
       gender,
@@ -228,6 +233,7 @@ export async function POST(
             where: { id: r.id },
             data: {
               name: r.name,
+              kana: r.kana,
               term: r.term,
               age: r.age,
               gender: r.gender,
@@ -242,6 +248,7 @@ export async function POST(
             data: {
               tournamentId,
               name: r.name,
+              kana: r.kana,
               term: r.term,
               age: r.age,
               gender: r.gender,

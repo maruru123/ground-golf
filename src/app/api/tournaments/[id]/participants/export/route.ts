@@ -20,6 +20,7 @@ export async function GET(
   const rows = participants.map((p) => ({
     参加者ID: p.id,
     名前: p.name,
+    カナ: p.kana ?? "",
     期: p.term ?? "",
     年齢: p.age ?? "",
     性別: p.gender ? GENDER_LABELS[p.gender] ?? "" : "",
@@ -30,10 +31,21 @@ export async function GET(
 
   const csv = Papa.unparse(
     {
-      fields: ["参加者ID", "名前", "期", "年齢", "性別", "組番号", "状態", "備考"],
+      fields: [
+        "参加者ID",
+        "名前",
+        "カナ",
+        "期",
+        "年齢",
+        "性別",
+        "組番号",
+        "状態",
+        "備考",
+      ],
       data: rows.map((r) => [
         r.参加者ID,
         r.名前,
+        r.カナ,
         r.期,
         r.年齢,
         r.性別,

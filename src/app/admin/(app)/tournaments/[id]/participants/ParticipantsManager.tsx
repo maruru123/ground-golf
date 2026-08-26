@@ -8,6 +8,7 @@ import { digitsOnly, onlyDigits } from "@/lib/input";
 interface P {
   id: string;
   name: string;
+  kana: string | null;
   term: number | null;
   age: number | null;
   gender: string | null;
@@ -35,6 +36,7 @@ export default function ParticipantsManager({
 
   // 追加フォーム
   const [name, setName] = useState("");
+  const [kana, setKana] = useState("");
   const [term, setTerm] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -55,6 +57,7 @@ export default function ParticipantsManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
+          kana: kana || null,
           term: term ? Number(term) : null,
           age: age ? Number(age) : null,
           gender: gender || null,
@@ -66,6 +69,7 @@ export default function ParticipantsManager({
     setBusy(false);
     if (res.ok) {
       setName("");
+      setKana("");
       setTerm("");
       setAge("");
       setGender("");
@@ -81,6 +85,7 @@ export default function ParticipantsManager({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: edit.name,
+        kana: edit.kana === undefined ? undefined : edit.kana,
         term: edit.term === undefined ? undefined : edit.term,
         age: edit.age === undefined ? undefined : edit.age,
         gender: edit.gender ?? null,
@@ -149,7 +154,9 @@ export default function ParticipantsManager({
   function downloadTemplate() {
     const bom = "﻿";
     const csv =
-      "参加者ID,名前,期,年齢,性別,組番号,状態,備考\n,山田太郎,12,72,男,1,参加,\n,佐藤花子,15,68,女,1,棄権,体調不良のため\n";
+      "参加者ID,名前,カナ,期,年齢,性別,組番号,状態,備考\n" +
+      ",山田太郎,ヤマダタロウ,12,72,男,1,参加,\n" +
+      ",佐藤花子,,15,68,女,1,棄権,体調不良のため\n";
     const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -212,7 +219,7 @@ export default function ParticipantsManager({
 
       {/* 追加フォーム */}
       <div className="bg-white rounded-2xl border border-slate-200 p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto_1fr_auto] gap-2 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_auto_auto_1fr_auto] gap-2 items-end">
           <div>
             <label className="block text-xs text-slate-500 mb-1">氏名 *</label>
             <input
@@ -220,6 +227,15 @@ export default function ParticipantsManager({
               onChange={(e) => setName(e.target.value)}
               className="tap w-full rounded-lg border border-slate-300 px-3 py-2"
               placeholder="山田太郎"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">カナ</label>
+            <input
+              value={kana}
+              onChange={(e) => setKana(e.target.value)}
+              className="tap w-full rounded-lg border border-slate-300 px-3 py-2"
+              placeholder="（任意）ヤマダタロウ"
             />
           </div>
           <div>
@@ -278,6 +294,7 @@ export default function ParticipantsManager({
           <thead>
             <tr className="bg-slate-50 text-slate-600 text-left">
               <th className="px-3 py-2">氏名</th>
+              <th className="px-3 py-2">カナ</th>
               <th className="px-3 py-2 w-16">期</th>
               <th className="px-3 py-2 w-16">年齢</th>
               <th className="px-3 py-2 w-16">性別</th>
@@ -290,7 +307,7 @@ export default function ParticipantsManager({
           <tbody>
             {initial.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-400">
+                <td colSpan={9} className="px-3 py-6 text-center text-slate-400">
                   参加者がいません。追加またはCSV取込してください。
                 </td>
               </tr>
@@ -307,6 +324,19 @@ export default function ParticipantsManager({
                           onChange={(e) =>
                             setEdit((s) => ({ ...s, name: e.target.value }))
                           }
+                          className="w-full rounded border border-slate-300 px-2 py-1"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          defaultValue={p.kana ?? ""}
+                          onChange={(e) =>
+                            setEdit((s) => ({
+                              ...s,
+                              kana: e.target.value || null,
+                            }))
+                          }
+                          placeholder="（任意）"
                           className="w-full rounded border border-slate-300 px-2 py-1"
                         />
                       </td>
@@ -407,6 +437,9 @@ export default function ParticipantsManager({
                   ) : (
                     <>
                       <td className="px-3 py-2 font-medium">{p.name}</td>
+                      <td className="px-3 py-2 text-slate-500">
+                        {p.kana || "-"}
+                      </td>
                       <td className="px-3 py-2">{p.term ?? "-"}</td>
                       <td className="px-3 py-2">{p.age ?? "-"}</td>
                       <td className="px-3 py-2">

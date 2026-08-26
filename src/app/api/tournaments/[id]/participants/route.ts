@@ -8,6 +8,7 @@ const DEFAULT_PER_GROUP = 8;
 
 const createSchema = z.object({
   name: z.string().trim().min(1, "氏名は必須です").max(50),
+  kana: z.string().trim().max(50).nullable().optional(),
   term: z.number().int().min(0).max(999).nullable().optional(),
   age: z.number().int().min(0).max(150).nullable().optional(),
   gender: z.enum(["male", "female", "other"]).nullable().optional(),
@@ -61,11 +62,12 @@ export async function POST(
       { status: 400 }
     );
   }
-  const { name, term, age, gender, status, note } = parsed.data;
+  const { name, kana, term, age, gender, status, note } = parsed.data;
   const participant = await prisma.participant.create({
     data: {
       tournamentId: id,
       name,
+      kana: kana || null, // 任意入力。空欄は未設定として扱う
       term: term ?? null,
       age: age ?? null,
       gender: gender ?? null,

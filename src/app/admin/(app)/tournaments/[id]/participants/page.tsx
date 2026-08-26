@@ -30,6 +30,7 @@ export default async function ParticipantsPage({
       initial={participants.map((p) => ({
         id: p.id,
         name: p.name,
+        kana: p.kana,
         term: p.term,
         age: p.age,
         gender: p.gender,
