@@ -5,6 +5,13 @@ import { summarizeScores, playOrder, type ScoreRule } from "@/lib/scoring";
 import { onlyDigits } from "@/lib/input";
 import { roundLabel } from "@/lib/labels";
 
+/** ラウンドごとのヘッダの色。配布資料の色分け（1R=青 / 2R=赤）に合わせる。 */
+function roundHeadClass(roundIdx: number): string {
+  if (roundIdx === 0) return "bg-blue-600 text-white";
+  if (roundIdx === 1) return "bg-red-600 text-white";
+  return "";
+}
+
 /** 組の回り順にそった列。ラウンドが切り替わる位置で区切る。 */
 function columnsFor(
   startHole: number,
@@ -294,10 +301,7 @@ export default function ScoreMonitor({
                         key={i}
                         colSpan={s.span}
                         className={`px-1 py-0.5 font-semibold ${
-                          // 2R は配布資料に合わせて赤地で示す
-                          s.roundIdx === 1
-                            ? "bg-red-600 text-white"
-                            : "text-slate-600"
+                          roundHeadClass(s.roundIdx) || "text-slate-600"
                         } ${i > 0 ? "border-l-2 border-slate-300" : ""}`}
                       >
                         {roundLabel(s.roundIdx, roundCount)}
@@ -315,10 +319,7 @@ export default function ScoreMonitor({
                     <th
                       key={c.holeNo}
                       className={`px-1 py-1 w-8 ${
-                        // 2R のホールは配布資料に合わせて赤地で示す
-                        isMultiRound && c.roundIdx === 1
-                          ? "bg-red-600 text-white"
-                          : ""
+                        isMultiRound ? roundHeadClass(c.roundIdx) : ""
                       } ${
                         boundaries.has(i) ? "border-l-2 border-slate-300" : ""
                       }`}
