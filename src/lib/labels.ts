@@ -35,6 +35,13 @@ export function roundLabel(roundIndex: number, roundCount: number): string {
   return roundIndex === 0 ? `${base}(IN)` : `${base}(OUT)`;
 }
 
+/** ラウンドごとのヘッダの色。配布資料の色分け（1R=青 / 2R=赤）に合わせる。 */
+export function roundHeadClass(roundIndex: number): string {
+  if (roundIndex === 0) return "bg-blue-600 text-white";
+  if (roundIndex === 1) return "bg-red-600 text-white";
+  return "";
+}
+
 export function genderToInternal(v: string): string | null {
   const s = v.trim();
   if (s === "男" || s.toLowerCase() === "male") return "male";

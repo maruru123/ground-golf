@@ -8,6 +8,7 @@ const tabs = [
   { seg: "participants", label: "参加者" },
   { seg: "pairing", label: "ペアリング" },
   { seg: "scores", label: "スコア" },
+  { seg: "results", label: "結果" },
   { seg: "ranking", label: "順位・表彰" },
   { seg: "analysis", label: "分析" },
 ];

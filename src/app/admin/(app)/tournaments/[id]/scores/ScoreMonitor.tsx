@@ -3,14 +3,7 @@
 import { useRef, useState } from "react";
 import { summarizeScores, playOrder, type ScoreRule } from "@/lib/scoring";
 import { onlyDigits } from "@/lib/input";
-import { roundLabel } from "@/lib/labels";
-
-/** ラウンドごとのヘッダの色。配布資料の色分け（1R=青 / 2R=赤）に合わせる。 */
-function roundHeadClass(roundIdx: number): string {
-  if (roundIdx === 0) return "bg-blue-600 text-white";
-  if (roundIdx === 1) return "bg-red-600 text-white";
-  return "";
-}
+import { roundLabel, roundHeadClass } from "@/lib/labels";
 
 /** 組の回り順にそった列。ラウンドが切り替わる位置で区切る。 */
 function columnsFor(
