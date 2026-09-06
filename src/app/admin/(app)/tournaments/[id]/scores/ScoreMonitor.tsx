@@ -293,9 +293,12 @@ export default function ScoreMonitor({
                       <th
                         key={i}
                         colSpan={s.span}
-                        className={`px-1 py-0.5 font-semibold text-slate-600 ${
-                          i > 0 ? "border-l-2 border-slate-300" : ""
-                        }`}
+                        className={`px-1 py-0.5 font-semibold ${
+                          // 2R は配布資料に合わせて赤地で示す
+                          s.roundIdx === 1
+                            ? "bg-red-600 text-white"
+                            : "text-slate-600"
+                        } ${i > 0 ? "border-l-2 border-slate-300" : ""}`}
                       >
                         {roundLabel(s.roundIdx, roundCount)}
                       </th>
@@ -312,6 +315,11 @@ export default function ScoreMonitor({
                     <th
                       key={c.holeNo}
                       className={`px-1 py-1 w-8 ${
+                        // 2R のホールは配布資料に合わせて赤地で示す
+                        isMultiRound && c.roundIdx === 1
+                          ? "bg-red-600 text-white"
+                          : ""
+                      } ${
                         boundaries.has(i) ? "border-l-2 border-slate-300" : ""
                       }`}
                     >
