@@ -95,7 +95,7 @@ export default function ResultsTable({
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2 no-print">
         <p className="text-sm text-slate-500">
-          ホールごとの打数を一覧で確認できます（表示のみ・編集はスコア画面から）。
+          ホールごとの打数を組の順に一覧できます（表示のみ・編集はスコア画面から）。
           赤字はホールインワンです。
         </p>
         <div className="flex gap-2">
